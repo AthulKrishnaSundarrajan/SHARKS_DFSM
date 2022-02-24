@@ -10,6 +10,7 @@
 .private*/
 plots*/
 outputs*/
+include*/
 
 # ignore specific files
 notes.txt
