@@ -9,7 +9,7 @@ tool_path = [current_folder,'/matlab-toolbox'];
 addpath(genpath(tool_path))
 
 % path to folder where the openfast outputs are
-Out_path = 'outputs';
+Out_path = 'data';
 
 % prefix and suffix of output files
 prefix = 'IEA_w_TMD_';
@@ -35,24 +35,14 @@ n_names = length(output_names);
 % go through each case
 for iCase = 1:nLinCases
  
-    %
-    [Channels, ChanName, ChanUnit, DescStr] = ReadFASTbinary(fullfile(Out_path,[prefix,num2str(iCase-1,'%01d'),suffix]));
- 
- % subplots
-%  figure(iCase)
- 
- % go through each output name and plot trajectory
-%  for idx = 1:n_names
-%      subplot(3,2,idx)
-%      ind = contains(ChanName,output_names{idx});
-% %      find(ind)
-%      plot(Channels(:,1),Channels(:,ind))
-%      title([output_names{idx},'',ChanUnit{ind}])
-%      xlim([100,800])
-%  end
+    switch suffix 
+        case '.outb'
+            [Channels, ChanName, ChanUnit, DescStr] = ReadFASTbinary(fullfile(Out_path,[prefix,num2str(iCase-1,'%01d'),suffix]));
+        case '.mat'
+            load([prefix,num2str(iCase-1,'%01d'),suffix]);
+    end
  
     iTime = 1;
-%     iStates = [23,9]; % PtfmPitch, GenSpeed
     iStates = [23,9,22,24,25,26,27]; %
     iInputs = [264,268,6]; % RtVAvgxh, GenTq, BldPitch1
 
