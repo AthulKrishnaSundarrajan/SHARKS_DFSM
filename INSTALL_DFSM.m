@@ -41,7 +41,7 @@ if ~silentflag, OpenThisFile('simulate_outputs.m'); end
 
 
 % close this file
-%RunSilent('CloseThisFile(mfilename)',silentflag)
+RunSilent('CloseThisFile(mfilename)',silentflag)
 
 
 end
@@ -115,10 +115,10 @@ zips(ind).test = 'ProcLinModels';
 % zips(ind).test = 'tint';
 % 
 % % zip 4
-ind = ind+1;
-zips(ind).url = 'https://colostate-my.sharepoint.com/:f:/g/personal/athulsun_colostate_edu/EiBGvOt_n4NJgRMKFfP0WRYBgfxd-6hiRtC3BupZu7NSZA&download=1';
-zips(ind).folder = 'DataFiles.zip';
-zips(ind).test = 'IEA_w_TMD_0.outb';
+% ind = ind+1;
+% zips(ind).url = 'https://colostate-my.sharepoint.com/:f:/g/personal/athulsun_colostate_edu/EiBGvOt_n4NJgRMKFfP0WRYBgfxd-6hiRtC3BupZu7NSZA&download=1';
+% zips(ind).folder = 'DataFiles.zip';
+% zips(ind).test = 'IEA_w_TMD_0.outb';
 
 
 % obtain full function path
