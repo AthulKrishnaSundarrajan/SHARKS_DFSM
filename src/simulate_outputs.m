@@ -37,14 +37,14 @@ filterflag = 1;
 
 % go through each case
 for iCase = 1:nLinCases
- 
-    switch suffix 
+
+    switch suffix
         case '.outb'
             [Channels, ChanName, ChanUnit, DescStr] = ReadFASTbinary(fullfile(Out_path,[prefix,num2str(iCase-1,'%01d'),suffix]));
         case '.mat'
             load([prefix,num2str(iCase-1,'%01d'),suffix]);
     end
-    
+
     %go through each output name and plot trajectory
     if sim_plot
         figure(iCase)
@@ -65,7 +65,7 @@ for iCase = 1:nLinCases
     t = Channels(:,iTime);
     x = Channels(:,iStates);x(:,1) = rad2deg(x(:,1));
     u = Channels(:,iInputs);
-    
+
     % filtering the wind input
     if filterflag
         t_f     = 1;
@@ -86,7 +86,7 @@ for iCase = 1:nLinCases
     % construct polynomial interpolates
     pp_x = spline(t,x');
 
-    % integrate 
+    % integrate
     pp_Ix = fnint(pp_x,ppval(pp_x,t(1)));
 
     % calculate integrated states
@@ -115,7 +115,7 @@ State_derivatives = vertcat(data(:).state_derivatives);
 X = [States,Inputs];
 Y = State_derivatives;
 
-% 
+%
 % [X,Y,maxX,maxY] = scaleData(X,Y);
 
 % get unique data points
@@ -123,7 +123,7 @@ Y = State_derivatives;
 % [X,Y] = uniqueDataTol(X,Y,tol);
 
 % size(X)
-% 
+%
 % Y1 = Y(:,1);
 % Y2 = Y(:,2);
 
@@ -146,7 +146,7 @@ Y = State_derivatives;
 % b = Y(:,iY)
 % A = X;
 % x = A\b;
-% 
+%
 % figure; hold on; plot(X*c); plot(Y(:,iY))
 
 % return
@@ -154,12 +154,12 @@ Y = State_derivatives;
 
 
 % [~,IA,~] = uniquetol([X,Y],0.01,'ByRows',true);
-% 
+%
 % Tu = data(iCase).time;
 % Tu = Tu(IA);
 % Xu = X(IA,:);
 % Yu = Y(IA,:);
-% 
+%
 % dataset1 = [Xu,Yu(:,1)];
 % dataset2 = [Xu,Yu(:,2)];
 
@@ -176,7 +176,7 @@ nw = length(W_centers)-1;
 
 
 
-figure; hold on 
+figure; hold on
 
 
 [X,Y,maxX,maxY] = scaleData(X,Y);
@@ -185,12 +185,12 @@ figure; hold on
 loadflag = 1;
 
 if loadflag
-    
+
 mod = load('trained_nets.mat');
     models = mod.models;
-    
+
 else
-    
+
 for k = 1:nw
 
     %W_centers(k)
@@ -221,7 +221,7 @@ end
 save('trained_nets.mat','models')
 
 end
-% plot histogram 
+% plot histogram
 figure
 hist(W,W_centers)
 
@@ -254,112 +254,3 @@ subplot(2,1,2); hold on
 plot(TOUT,YOUT(:,2),'r')
 plot(data(iCase).time(t_ind),data(iCase).states(t_ind,2),'k')
 title('Gen Speed [rpm]')
-
-
-return
-
-function dx = deriv(t,x,U,net,maxX,maxY,W_centers)
-
-% get wind speed
-u = U(t);
-
-% get wind speed
-w = u(1);
-
-% determine which nueral net must be used
-net_num = 1:length(W_centers);
-n = ceil(interp1(W_centers,net_num,w));
-
-% get sclaed input values
-X = [x',u]./maxX;
-
-% use net
-net = net{n};
-
-% evaluate derivative value from neural network
-dx = net(X');
-
-% unscale
-dx = dx.*maxY';
-
-end
-
-
-%
-function [X,Y] = uniqueDataTol(X,Y,tol)
-
-% todo: scale data
-
-% determine unique values
-[~,IA,~] = uniquetol([X,Y],tol,'ByRows',true);
-
-% extract unique indices
-X = X(IA,:);
-Y = Y(IA,:);
-
-end
-
-% 
-function [X,Y,maxX,maxY] = scaleData(X,Y)
-
-% maximum column values
-maxX = max(abs(X),[],1);
-maxY = max(abs(Y),[],1);
-
-% avoid zeros
-maxX(maxX==0) = 1;
-maxY(maxY==0) = 1;
-
-% scale
-X = X./maxX;
-Y = Y./maxY;
-
-end
-
-function X = unscaleData(X,maxX)
-
-X = X.*maxX;
-
-end
-
-%
-function net = nntrain(X,Y)
-
-% 
-x = X';
-t = Y';
-
-% Choose a Training Function
-% For a list of all training functions type: help nntrain
-% 'trainlm' is usually fastest.
-% 'trainbr' takes longer but may be better for challenging problems.
-% 'trainscg' uses less memory. Suitable in low memory situations.
-trainFcn = 'trainbr';  % Levenberg-Marquardt backpropagation.
-
-% Create a Fitting Network
-hiddenLayerSize = 25;
-net = fitnet(hiddenLayerSize,trainFcn);
-
-net.trainParam.max_fail = 10000;
-net.trainParam.mu_max = 1e20;
-net.trainParam.min_grad = 1e-25;
-net.trainParam.epochs = 200;
-
-% Setup Division of Data for Training, Validation, Testing
-net.divideParam.trainRatio = 70/100;
-net.divideParam.valRatio = 15/100;
-net.divideParam.testRatio = 15/100;
-
-% Train the Network
-[net,tr] = train(net,x,t,'UseParallel','yes');
-
-% Test the Network
-y = net(x);
-e = gsubtract(t,y);
-performance = perform(net,t,y);
-
-% View the Network
-% view(net)
-
-
-end
