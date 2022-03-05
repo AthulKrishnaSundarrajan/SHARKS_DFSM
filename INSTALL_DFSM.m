@@ -97,10 +97,10 @@ ind = 0;
 zips = struct('url','','folder','','test','');
 
 % zip 1
-ind = ind + 1; % increment
-zips(ind).url = 'https://github.com/danielrherber/dt-qp-project/archive/master.zip';
-zips(ind).folder = 'DTQP';
-zips(ind).test = 'INSTALL_DTQP';
+% ind = ind + 1; % increment
+% zips(ind).url = 'https://github.com/danielrherber/dt-qp-project/archive/master.zip';
+% zips(ind).folder = 'DTQP';
+% zips(ind).test = 'INSTALL_DTQP';
 
 % zip 2
 ind = ind+1; 
