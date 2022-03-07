@@ -19,7 +19,7 @@ net = fitnet(hiddenLayerSize,trainFcn);
 net.trainParam.max_fail = 10000;
 net.trainParam.mu_max = 1e20;
 net.trainParam.min_grad = 1e-25;
-net.trainParam.epochs = 200;
+net.trainParam.epochs = 2000;
 
 % Setup Division of Data for Training, Validation, Testing
 net.divideParam.trainRatio = 70/100;

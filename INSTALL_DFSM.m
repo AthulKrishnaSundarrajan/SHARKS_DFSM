@@ -245,7 +245,4 @@ function RunThisFile
 % run silent 
 %silentflag = 0;
 
-% run and install DTQP
-INSTALL_DTQP('silent');
-
 end
