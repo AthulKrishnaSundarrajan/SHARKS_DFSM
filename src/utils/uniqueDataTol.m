@@ -1,14 +1,8 @@
 %
 function [X,Y] = uniqueDataTol(X,Y,tol)
 
+% combine
 xy = [X,Y];
-
-% tess = convhulln(xy);
-% in = inhull(xy,xy,tess);
-
-% I_convex = false(size(xy,1),1);
-% I_convex(unique(tess)) = true;
-
 
 % determine unique values (lowest first)
 [~,IA_lowest,~] = uniquetol(xy,tol,'lowest','ByRows',true);
@@ -20,9 +14,10 @@ I_interior_lowest(IA_lowest) = true;
 I_interior_highest = false(size(xy,1),1);
 I_interior_highest(IA_highest) = true;
 
+% combine indices
 I = I_interior_highest | I_interior_lowest;
 
-% extract unique indices
+% extract unique data points
 X = X(I,:);
 Y = Y(I,:);
 

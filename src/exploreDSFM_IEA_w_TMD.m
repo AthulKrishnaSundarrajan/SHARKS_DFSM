@@ -1,24 +1,21 @@
 clc; clear; close all;
 
-data = loadData;
+data = loadData_IEA_w_TMD;
 
 data = approximateStateDerivatives(data);
 
-
-
-
-% 
+%
 % hf = figure; hold on
 % hf.Color = 'w';
 % for iCase = 1:1 % nLinCases
-% 
+%
 %     plot(data(iCase).time,data(iCase).states(:,1),'.','linewidth',1,...
 %         'DisplayName',strcat("DLC",string(iCase)))
-% 
+%
 %     t_more = linspace(min(t),max(t),1e6);
 %     x = ppval(pp_x_{iCase},t_more);
 %     plot(t_more,x(1,:),'linewidth',1)
-% 
+%
 % end
 % legend()
 % xlim([200 210])
@@ -27,20 +24,20 @@ data = approximateStateDerivatives(data);
 % ha.LineWidth = 1;
 % xlabel('time [s]')
 % ylabel('')
-% 
+%
 % hf = figure; hold on
 % hf.Color = 'w';
 % for iCase = 1:1 % nLinCases
-% 
+%
 %     t = data(iCase).time;
-% 
+%
 %     plot(data(iCase).time,data(iCase).state_derivatives(:,2),'linewidth',1,...
 %         'DisplayName',strcat("DLC",string(iCase)))
-% 
+%
 %     t_more = linspace(min(t),max(t),1e6);
 %     Dx = ppval(pp_Dx_{iCase},t_more);
 %     plot(t_more,Dx(2,:),'linewidth',1)
-% 
+%
 % end
 % legend()
 % xlim([200 210])
@@ -49,22 +46,22 @@ data = approximateStateDerivatives(data);
 % ha.LineWidth = 1;
 % xlabel('time [s]')
 % ylabel('')
-% 
-% 
-% 
-% 
-% 
+%
+%
+%
+%
+%
 % hf = figure; hold on
 % hf.Color = 'w';
 % for iCase = 1:1 % nLinCases
-% 
+%
 %     plot(data(iCase).time,data(iCase).states(:,2),'.','linewidth',1,...
 %         'DisplayName',strcat("DLC",string(iCase)))
-% 
+%
 %     t_more = linspace(min(t),max(t),1e6);
 %     x = ppval(pp_x_{iCase},t_more);
 %     plot(t_more,x(2,:),'linewidth',1)
-% 
+%
 % end
 % legend()
 % xlim([200 210])
@@ -73,20 +70,20 @@ data = approximateStateDerivatives(data);
 % ha.LineWidth = 1;
 % xlabel('time [s]')
 % ylabel('')
-% 
+%
 % hf = figure; hold on
 % hf.Color = 'w';
 % for iCase = 1:1 % nLinCases
-% 
+%
 %     t = data(iCase).time;
-% 
+%
 %     plot(data(iCase).time,data(iCase).state_derivatives(:,1),'linewidth',1,...
 %         'DisplayName',strcat("DLC",string(iCase)))
-% 
+%
 %     t_more = linspace(min(t),max(t),1e6);
 %     Dx = ppval(pp_Dx_{iCase},t_more);
 %     plot(t_more,Dx(2,:),'linewidth',1)
-% 
+%
 % end
 % legend()
 % xlim([200 210])
@@ -145,42 +142,42 @@ figure; hold on
 plot(Time,States,'.')
 plot(Time,Y_,'.')
 
-% 
+%
 
-% 
+%
 % X_ = tonndata(X,false,false);
 % Y_ = tonndata(Y,false,false);
 % net = timedelaynet(1:2,10);
 % [Xs,Xi,Ai,Ts] = preparets(net,X_,Y_);
 % net = train(net,Xs,Ts,Xi,Ai);
-% 
+%
 % [Y_,Xf,Af] = net(Xs,Xi,Ai);
 % perf = perform(net,Ts,Y_);
-% 
+%
 % [netc,Xic,Aic] = closeloop(net,Xf,Af);
 % view(netc)
-% 
+%
 % y2 = netc(X_,Xic,Aic);
-% 
+%
 % for k = 1:length(y2)
 %     Y2(k,:) = y2{k};
 % end
-% 
+%
 % figure; hold on
 % plot(Y,Y2,'.')
-% 
+%
 % return
-% 
+%
 % [net,tr,xi,ai,t] = nndynamic(X,Y)
 
 
 
-% 
+%
 % Y_fit = net(X')';
 % plot(Y,Y_fit,'.')
-% 
+%
 % netc = closeloop(net);
-% 
+%
 % Yc = netc(X');
 % plot(Y,Yc')
 
@@ -206,7 +203,7 @@ for k = 1:ny
     [X_,Y_] = uniqueDataTol(X_,Y_,0.05);
 %     X_ = unscaleData(X_,maxX);
 %     Y_ = unscaleData(Y_,maxY);
-    
+
 %     net = nntrain(X_,Y_);
 %     net = newrb(X_',Y_',0,1,400);
 %     net = newrbe(X_',Y_',100);
@@ -214,7 +211,7 @@ for k = 1:ny
     [trainedModel, validationRMSE] = trainRegressionModel(X_,Y_);
     net = trainedModel.predictFcn2;
     models_{k} = net;
-   
+
     figure
     try
         Y_fit = net(X_);
@@ -224,12 +221,12 @@ for k = 1:ny
         plot(Y_,Y_fit,'.')
     end
 
-    
+
     [X_,Y_,maxX,maxY_] = scaleData(X,Y(:,k));
     [X_,Y_] = uniqueDataTol(X_,Y_,0.05);
 %     X_ = unscaleData(X_,maxX);
 %     Y_ = unscaleData(Y_,maxY);
-    
+
     figure; hold on
     try
         Y_fit = net(X_);
@@ -290,7 +287,7 @@ return
 % return
 
 
-% 
+%
 % % [~,IA,~] = uniquetol([X,Y],0.01,'ByRows',true);
 % %
 % % Tu = data(iCase).time;
@@ -300,48 +297,48 @@ return
 % %
 % % dataset1 = [Xu,Yu(:,1)];
 % % dataset2 = [Xu,Yu(:,2)];
-% 
+%
 % % size(IA)
-% 
+%
 % % [W,IA,IC] = uniquetol(X(:,end-2),0.05);
-% 
+%
 % W = X(:,end-2);
 % % [~,W_centers] = hist(W,25)
 % W_centers = linspace(min(W),max(W),50);
 % W_midpoint = W_centers(1:end-1)+diff(W_centers)/2;
-% 
+%
 % nw = length(W_centers)-1;
-% 
-% 
-% 
+%
+%
+%
 % figure; hold on
-% 
-% 
+%
+%
 % [X,Y,maxX,maxY] = scaleData(X,Y);
-% 
-% 
+%
+%
 % loadflag = 1;
-% 
+%
 % if loadflag
-% 
+%
 % mod = load('trained_nets.mat');
 %     models = mod.models;
-% 
+%
 % else
-% 
+%
 % for k = 1:nw
-% 
+%
 %     %W_centers(k)
-% 
+%
 %     IC = (W_centers(k) <= W) & (W_centers(k+1) >= W);
-% 
+%
 %     Xw = X(IC,:);
 %     Yw = Y(IC,:);
-% 
+%
 %     model = nntrain(Xw,Yw);
-% 
+%
 %     models{k} = model;
-% 
+%
 %     subplot(ceil(sqrt(nw)),ceil(sqrt(nw)),k); hold on
 %     xm = model(Xw')';
 %     ym = Yw;
@@ -349,15 +346,15 @@ return
 %     plot([-1 1],[-1 1],'color',[0.5 0.5 0.5])
 %     xlim([min(xm,[],"all") max(xm,[],"all")])
 %     ylim([min(ym,[],"all") max(ym,[],"all")])
-% 
+%
 %     text(0,0,string(W_centers(k)))
-% 
-% 
+%
+%
 % end
-% 
+%
 % % save
 % save('trained_nets.mat','models')
-% 
+%
 % end
 % % plot histogram
 % figure

@@ -1,22 +1,15 @@
-function data = loadData
+function data = loadData_IEA_w_TMD
 
-% get current directory
-
-current_folder = pwd;
-
-% add DanZs openfast output processing toolbox to path
-tool_path = [current_folder,'/matlab-toolbox'];
-addpath(genpath(tool_path))
-
-% path to folder where the openfast outputs are
-Out_path = 'data';
+root_path = which('INSTALL_DFSM'); % obtain full function path
+data_path = fullfile(fileparts(root_path), 'data', filesep);
+fulldata_path = fullfile(data_path,'IEA_w_TMD');
 
 % prefix and suffix of output files
 prefix = 'IEA_w_TMD_';
 suffix = '.outb';
 
 % get all the files in the directory
-Out_files = dir(fullfile(Out_path,[prefix,'*',suffix]));
+Out_files = dir(fullfile(fulldata_path,[prefix,'*',suffix]));
 
 % get length
 nLinCases = length(Out_files);
@@ -29,7 +22,7 @@ else
     numstring = '%02d';
 end
 
-% reqired outputs
+% required outputs
 output_names = {'RtVAvgxh','GenTq','BldPitch1','PtfmPitch','GenSpeed','GenPwr'};
 n_names = length(output_names);
 sim_plot = 1;
@@ -39,7 +32,7 @@ for iCase = 1:nLinCases
 
     switch suffix
         case '.outb'
-            [Channels, ChanName, ChanUnit, DescStr] = ReadFASTbinary(fullfile(Out_path,[prefix,num2str(iCase-1,'%01d'),suffix]));
+            [Channels, ChanName, ChanUnit, DescStr] = ReadFASTbinary(fullfile(fulldata_path,[prefix,num2str(iCase-1,'%01d'),suffix]));
         case '.mat'
             load([prefix,num2str(iCase-1,'%01d'),suffix]);
     end
@@ -61,7 +54,7 @@ for iCase = 1:nLinCases
 %     iInputs = [2,268,6]; % RtVAvgxh, GenTq, BldPitch1
     % iInputs = [2,268]; % RtVAvgxh, GenTq, BldPitch1
     iInputs = [264,268]; % RtVAvgxh, GenTq, BldPitch1
-    
+
 
     % extract
     t = Channels(:,iTime);
