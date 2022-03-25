@@ -1,115 +1,128 @@
-function [mdl,X,Y] = createDFSM(data,linearModels)
+function model = createDFSM(data,model,iCase,state_names)
 
-test = 'LTI';
-
-% combine DLCs
-Time = vertcat(data(:).time);
-States = vertcat(data(:).states);
-Inputs = vertcat(data(:).inputs);
-State_derivatives = vertcat(data(:).state_derivatives);
+% extract state and input information
+Time = vertcat(data(iCase).time);
+States = vertcat(data(iCase).states);
+Inputs = vertcat(data(iCase).inputs);
+State_derivatives = vertcat(data(iCase).state_derivatives);
 
 % data for fitting
 X = [States,Inputs];
 Y = State_derivatives;
 
-%
-iCase = 1;
+
+% input
 U = griddedInterpolant(data(iCase).time,data(iCase).inputs,'spline');
 dGenSpeed = griddedInterpolant(data(iCase).time,data(iCase).state_derivatives(:,2),'spline');
 
-%
+% simulation options
 t0 = 100;
 td = 500;
 TSPAN = [t0 t0+td];
 Y0 = data(iCase).states(t0 == data(iCase).time,:);
 OPTIONS = odeset('RelTol',1e-5,'AbsTol',1e-5);
 
-%
-switch test
+% extract options
+sim_type = model.sim_type;
+mdl = model.mdl;
+
+% generate models
+
+switch sim_type
+
     case 'LTI'
-        [Ai,Bi,Di] = DFSM_LTI(Inputs,States,State_derivatives);
-        [TOUT,YOUT] = ode45(@(t,x) deriv_single(t,x,U,Ai,Bi,Di),TSPAN,Y0,OPTIONS);
-        mdl = [];
+
+        % create or load model
+        if isempty(mdl)
+            [Ai,Bi,Di] = DFSM_LTI(Inputs,States,State_derivatives);
+            model.mdl = {Ai,Bi,Di};
+        else
+            Ai = mdl{1}; Bi = mdl{2}; Di = mdl{3};
+        end
+
+        % run simulation
+         [TOUT,YOUT] = ode45(@(t,x) deriv_single(t,x,U,Ai,Bi,Di),TSPAN,Y0,OPTIONS);
 
     case 'LPV'
-        [Ai,Bi,Di] = DFSM_LPV(Inputs,States,State_derivatives);
+
+        % create or load model
+        if isempty(mdl)
+            [Ai,Bi,Di] = DFSM_LPV(Inputs,States,State_derivatives);
+            model.mdl = {Ai,Bi,Di};
+        else
+            Ai = mdl{1}; Bi = mdl{2}; Di = mdl{3};
+        end
+        
+        % run simulation
         [TOUT,YOUT] = ode45(@(t,x) deriv1(t,x,U,Ai,Bi,Di,dGenSpeed),TSPAN,Y0,OPTIONS);
 
     case 'NN'
-        %
-        [X_,Y_,maxX,maxY] = scaleData(X,Y);
-        [X_,Y_] = uniqueDataTol(X_,Y_,0.02);
 
-        root_path = which('INSTALL_DFSM'); % obtain full function path
-        data_path = fullfile(fileparts(root_path), 'data', filesep);
-        fulldata_path = fullfile(data_path,'idetc');
+        % create or load model
+        if isempty(mdl)
+            [X_,Y_,maxX,maxY] = scaleData(X,Y);
+            [X_,Y_] = uniqueDataTol(X_,Y_,0.02);
 
-        net = nntrain(X_,Y_(:,[2,4,5]));
-        genFunction(net,fullfile(fulldata_path,'mynet.m'))
+            root_path = which('INSTALL_DFSM'); % obtain full function path
+            data_path = fullfile(fileparts(root_path), 'data', filesep);
+            fulldata_path = fullfile(data_path,'idetc');
 
+            net = nntrain(X_,Y_(:,[2,4,5]));
+            genFunction(net,fullfile(fulldata_path,'mynet.m'))
+
+            model.mdl = {maxX,maxY}; 
+
+        else
+            maxX = model.mdl{1}; maxY = model.mdl{2};
+
+        end
+        
+        % run simulation
         [TOUT,YOUT] = ode45(@(t,x) deriv_net2(t,x,U,maxX,maxY,dGenSpeed),TSPAN,Y0,OPTIONS);
-
-%
-% [TOUT,YOUT] = ode45(@(t,x) deriv_idw(t,x,U,X_,Y_),TSPAN,Y0,OPTIONS);
-
-% [TOUT,YOUT] = ode45(@(t,x) deriv_net(t,x,U,[],[],dGenSpeed),TSPAN,Y0,OPTIONS);
-
-%
-
 end
 
-% figure
-% try
-%     Y_fit = net(X_);
-%     plot(Y_,Y_fit,'.')
-% catch
-%     Y_fit = net(X_')';
-%     plot(Y_,Y_fit,'.')
-% end
-%
-%
-% mdl = [];
-% return
-
-
-% scale data
-
-% offset = 0.2;
 
 % plot
 hf = figure;
 hf.Color = 'w';
 hf.Position = [1000 700 560 640];
+sgtitle(sim_type)
+nl = length(state_names);
 
-subplot(5,1,1); hold on
-plot(TOUT,YOUT(:,1),'r')
-plot(data(iCase).time,data(iCase).states(:,1),'k')
-title('Ptfm Pitch')
+for i = 1:nl
+
+subplot(5,1,i); hold on
+plot(TOUT,YOUT(:,i),'r')
+plot(data(iCase).time,data(iCase).states(:,i),'k')
+title(state_names{i})
 xlim([t0 t0+td])
 
-subplot(5,1,2); hold on
-plot(TOUT,YOUT(:,2),'r')
-plot(data(iCase).time,data(iCase).states(:,2),'k')
-title('Gen Speed')
-xlim([t0 t0+td])
+end
 
-subplot(5,1,3); hold on
-plot(TOUT,YOUT(:,3),'r')
-plot(data(iCase).time,data(iCase).states(:,3),'k')
-title('TTDspFA')
-xlim([t0 t0+td])
 
-subplot(5,1,4); hold on
-plot(TOUT,YOUT(:,4),'r')
-plot(data(iCase).time,data(iCase).states(:,4),'k')
-title('Deriv Ptfm Pitch')
-xlim([t0 t0+td])
-
-subplot(5,1,5); hold on
-plot(TOUT,YOUT(:,5),'r')
-plot(data(iCase).time,data(iCase).states(:,5),'k')
-title('Deriv TTDspFA')
-xlim([t0 t0+td])
+% subplot(5,1,2); hold on
+% plot(TOUT,YOUT(:,2),'r')
+% plot(data(iCase).time,data(iCase).states(:,2),'k')
+% title('Gen Speed')
+% xlim([t0 t0+td])
+% 
+% subplot(5,1,3); hold on
+% plot(TOUT,YOUT(:,3),'r')
+% plot(data(iCase).time,data(iCase).states(:,3),'k')
+% title('TTDspFA')
+% xlim([t0 t0+td])
+% 
+% subplot(5,1,4); hold on
+% plot(TOUT,YOUT(:,4),'r')
+% plot(data(iCase).time,data(iCase).states(:,4),'k')
+% title('Deriv Ptfm Pitch')
+% xlim([t0 t0+td])
+% 
+% subplot(5,1,5); hold on
+% plot(TOUT,YOUT(:,5),'r')
+% plot(data(iCase).time,data(iCase).states(:,5),'k')
+% title('Deriv TTDspFA')
+% xlim([t0 t0+td])
 
 end
 
@@ -177,7 +190,7 @@ dx(4) = dx_net(2);
 dx(5) = dx_net(3);
 % dx(2) = dGenSpeed(t);
 
-disp(t)
+%disp(t)
 
 end
 
@@ -240,6 +253,8 @@ end
 function [Ai,Bi,Di] = DFSM_LPV(Inputs,States,State_derivatives)
 
 w = Inputs(:,1);
+maxW = max(w);
+minW = min(w);
 
 W = linspace(7,16,50);
 dw = W(2)-W(1);
@@ -251,8 +266,7 @@ offset = 3;
 % W = mean(w);
 % offset = 100;
 
-maxW = max(w);
-minW = min(w);
+
 
 for k = 1:length(W)
 
@@ -280,9 +294,9 @@ for k = 1:length(W)
 
     AB = linsolve(in,Dx_);
 
-    mdl_ = fitlm([x_,u_],Dx_(:,2));
+    %mdl_ = fitlm([x_,u_],Dx_(:,2));
 
-    Beta = linsolve([x_,u_],Dx_);
+    %Beta = linsolve([x_,u_],Dx_);
 
     AB = AB';
 %     mdl(k).A = [0 0 0 1 0; AB(2,1:5); 0 0 0 0 1; AB(1,1:5); AB(3,1:5);];
@@ -308,7 +322,7 @@ for k = 1:length(W)
 %     axis manual
 %     plot([-1 1],[-1 1],'k')
 
-    eig(mdl(k).A)
+   % eig(mdl(k).A)
 
 end
 
@@ -322,8 +336,8 @@ for k = 1:length(mdl)
 
 end
 
-figure; plot(W,A)
-figure; plot(W,B)
+% figure; plot(W,A)
+% figure; plot(W,B)
 
 for k = 1:length(mdl)
     A_interp(k,:,:) = mdl(k).A;

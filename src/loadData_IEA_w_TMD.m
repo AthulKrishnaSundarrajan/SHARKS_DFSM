@@ -1,11 +1,14 @@
 function data = loadData_IEA_w_TMD
 
+close all;
+
 root_path = which('INSTALL_DFSM'); % obtain full function path
 data_path = fullfile(fileparts(root_path), 'data', filesep);
-fulldata_path = fullfile(data_path,'IEA_w_TMD');
+fulldata_path = fullfile(data_path,'IEA_w_TMD2');
 
 % prefix and suffix of output files
-prefix = 'IEA_w_TMD_';
+prefix = 'lin_'; % near rated region
+% prefix = 'lin_rated_'; % rated
 suffix = '.outb';
 
 % get all the files in the directory
@@ -13,7 +16,7 @@ Out_files = dir(fullfile(fulldata_path,[prefix,'*',suffix]));
 
 % get length
 nLinCases = length(Out_files);
-% nLinCases = 1;
+ %nLinCases = 1;
 
 % numbering scheme bases on the number of files
 if nLinCases <= 10
@@ -24,7 +27,9 @@ end
 
 % required outputs
 output_names = {'RtVAvgxh','GenTq','BldPitch1','PtfmPitch','GenSpeed','GenPwr'};
-n_names = length(output_names);
+req_states = {'PtfmPitch','TipDxb1','GenSpeed'};
+req_controls = {'RtVAvgxh','GenTq','BldPitch1'};
+n_names = length(output_names);iTime = 1;
 sim_plot = 1;
 
 % go through each case
@@ -39,29 +44,32 @@ for iCase = 1:nLinCases
 
     %go through each output name and plot trajectory
     if sim_plot
-%         figure(iCase)
+        figure(iCase)
         for idx = 1:n_names
-%             subplot(3,2,idx)
+            subplot(3,2,idx)
             ind = contains(ChanName,output_names{idx});
             %      find(ind)
-%             plot(Channels(:,1),Channels(:,ind))
-%             title([output_names{idx},'',ChanUnit{ind}])
-%             xlim([100,800])
+            plot(Channels(:,1),Channels(:,ind))
+            title([output_names{idx},'',ChanUnit{ind}])
+            xlim([Channels(1,1),Channels(end,1)])
         end
     end
-    iTime = 1;
-    iStates = [23,9]; %,22,24,25,26,27]; % PtfmPitch, GenSpeed
-%     iInputs = [2,268,6]; % RtVAvgxh, GenTq, BldPitch1
-    % iInputs = [2,268]; % RtVAvgxh, GenTq, BldPitch1
-    iInputs = [264,268]; % RtVAvgxh, GenTq, BldPitch1
-
+    
+    % fix to bug
+    for i = 1:length(req_states)
+        iStates(i) = find(contains(ChanName,req_states{i}));
+    end
+    
+    % fix to bug
+    for i = 1:length(req_controls)
+        iInputs(i) = find(contains(ChanName,req_controls{i}));
+    end
+    
 
     % extract
     t = Channels(:,iTime);
-    x = Channels(:,iStates); x(:,1) = rad2deg(x(:,1));
+    x = Channels(:,iStates); %x(:,1) = deg2rad(x(:,1));
     u = Channels(:,iInputs);
-
-    I = 28; plot(t, Channels(:,I)); title(ChanName{I})
 
     % assign
     data(iCase).time = t;
@@ -72,4 +80,27 @@ for iCase = 1:nLinCases
 
 end
 
+% specify which states derivative is included
+dindex = [1,3];
+
+% approximate state derivatives
+data = approximateStateDerivatives(data,dindex);
+
+% add state names
+LinearModels = [];
+state_names = req_states; state_names{end+1} = ['d',req_states{dindex(1)}]; state_names{end+1} = ['d',req_states{dindex(2)}];
+
+% generate model using first simulation
+iCase = 1;
+model.sim_type = 'NN';
+model.mdl = {};
+
+% create DFSM
+model = createDFSM(data,model,iCase,state_names);
+
+% for the second state run simulations using model from the first state
+iCase = 2;
+model = createDFSM(data,model,iCase,state_names);
+
 end
+

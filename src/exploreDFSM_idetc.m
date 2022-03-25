@@ -30,9 +30,15 @@ end
 Time = Channels(:,1);
 
 % required states
-% req_states = {'PtfmPitch','GenSpeed','TTDspFA'};
 req_states = {'PtfmPitch','GenSpeed','TTDspFA'};
+req_states = {'PtfmPitch','TTDspFA','GenSpeed'};
+
 state_ind = find(contains(ChanName,req_states));
+
+for i = 1:length(req_states)
+    state_ind(i) = find(contains(ChanName,req_states{i}));
+end
+
 States = Channels(:,state_ind);
 
 % load specific states
@@ -51,21 +57,28 @@ data(1).time = Time;
 data(1).states = States;
 data(1).inputs = Controls;
 
+dindex = [1 3];
 
-data = approximateStateDerivatives(data)
 
+data = approximateStateDerivatives(data,dindex);
+
+state_names = req_states; state_names{end+1} = ['d',req_states{dindex(1)}]; state_names{end+1} = ['d',req_states{dindex(2)}];
 % load linearized model
 LinearModels = load(fullfile(fulldata_path,'pd_1.0_linear.mat'));
 
-[mdl,X,Y] = createDFSM(data,LinearModels);
+iCase = 1;
+model.sim_type = 'LPV';
+model.mdl = {};
 
-[X_,Y_,maxX,maxY] = scaleData(X,Y);
-[X_,Y_] = uniqueDataTol(X_,Y_,0.15);
-X_ = unscaleData(X_,maxX);
-Y_ = unscaleData(Y_,maxY);
+model = createDFSM(data,model,iCase,state_names);
 
-Y2 = Y_(:,2);
-Y22 = Y(:,2);
+% [X_,Y_,maxX,maxY] = scaleData(X,Y);
+% [X_,Y_] = uniqueDataTol(X_,Y_,0.15);
+% X_ = unscaleData(X_,maxX);
+% Y_ = unscaleData(Y_,maxY);
+% 
+% Y2 = Y_(:,2);
+% Y22 = Y(:,2);
 return
 
 % combine DLCs

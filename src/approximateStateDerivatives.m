@@ -1,8 +1,8 @@
-function data = approximateStateDerivatives(data)
+function data = approximateStateDerivatives(data,dindex)
 
 % TODO: save original data
 
-plotflag = true;
+plotflag = 0;
 filterflag = true;
 d_PtfmPitchflag = false;
 
@@ -41,25 +41,6 @@ for iCase = 1:nDLCs
         figure; hold on
         xmax =  max(abs([x_;x]),[],1);
         plot(t,x_./xmax); plot(t,x./xmax,'.');
-
-
-%         C = materialColors;
-%                 ind = 1;
-%
-%         hf = figure; hold on
-%         hf.Color  = 'w';
-%         hf.Position = [1000 918 720 420];
-%
-%         t_more = linspace(min(t),max(t),1e6);
-%         pp_x = spline(t,x_');
-%         xx = ppval(pp_x,t_more);
-%
-%         xmax =  max(abs([x_;x]),[],1);
-%         plot(t_more,xx(ind,:),'linewidth',1.5,'Color',C.blue(10,:))
-%         plot(t,x_(:,ind),'.','Color',C.blue(5,:),'markersize',4);
-
-
-%         xlim([t(1) t(1)+5])
 
         ha = gca;
         ha.FontSize = 16;
@@ -137,11 +118,11 @@ for iCase = 1:nDLCs
         % update states
 %         {'PtfmPitch','GenSpeed','TTDspFA'
 %         {'PtfmPitch','GenSpeed','TTDspFA','PtfmSurge'
-        data(iCase).states = [x,Dx([1,3],:)'];
+        data(iCase).states = [x,Dx(dindex,:)'];
 
         % assign derivatives
 %         data(iCase).state_derivatives = [D2x(1,:)',Dx(2,:)',D2x(3,:)'];
-        data(iCase).state_derivatives = [Dx(1,:)',Dx(2,:)',Dx(3,:)',D2x(1,:)',D2x(3,:)'];
+        data(iCase).state_derivatives = [Dx(1,:)',Dx(2,:)',Dx(3,:)',D2x(dindex(1),:)',D2x(dindex(2),:)'];
 
 %         data(iCase).state_derivative_names = {'d_PtfmPitch','d_GenSpeed'};
 
