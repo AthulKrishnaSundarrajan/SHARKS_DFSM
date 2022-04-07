@@ -27,7 +27,9 @@ end
 
 % required outputs
 output_names = {'RtVAvgxh','GenTq','BldPitch1','PtfmPitch','GenSpeed','GenPwr'};
-req_states = {'PtfmPitch','TipDxb1','GenSpeed'};
+% req_states = {'PtfmPitch','TipDxb1','GenSpeed'};
+% req_states = {'PtfmPitch','GenSpeed','RotThrust','RotTorq','NcIMURAys'};
+req_states = {'PtfmPitch','GenSpeed'};
 req_controls = {'RtVAvgxh','GenTq','BldPitch1'};
 n_names = length(output_names);iTime = 1;
 sim_plot = 1;
@@ -54,17 +56,16 @@ for iCase = 1:nLinCases
             xlim([Channels(1,1),Channels(end,1)])
         end
     end
-    
+
     % fix to bug
     for i = 1:length(req_states)
         iStates(i) = find(contains(ChanName,req_states{i}));
     end
-    
+
     % fix to bug
     for i = 1:length(req_controls)
         iInputs(i) = find(contains(ChanName,req_controls{i}));
     end
-    
 
     % extract
     t = Channels(:,iTime);
@@ -81,14 +82,17 @@ for iCase = 1:nLinCases
 end
 
 % specify which states derivative is included
-dindex = [1,3];
+dindex = 1:length(req_states);
 
 % approximate state derivatives
 data = approximateStateDerivatives(data,dindex);
 
 % add state names
 LinearModels = [];
-state_names = req_states; state_names{end+1} = ['d',req_states{dindex(1)}]; state_names{end+1} = ['d',req_states{dindex(2)}];
+state_names = req_states;
+for k = 1:length(dindex)
+    state_names{end+1} = ['d',req_states{dindex(k)}];
+end
 
 % generate model using first simulation
 iCase = 1;
@@ -103,4 +107,3 @@ iCase = 2;
 model = createDFSM(data,model,iCase,state_names);
 
 end
-

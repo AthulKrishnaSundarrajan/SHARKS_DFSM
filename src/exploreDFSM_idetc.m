@@ -30,7 +30,7 @@ end
 Time = Channels(:,1);
 
 % required states
-req_states = {'PtfmPitch','GenSpeed','TTDspFA'};
+% req_states = {'PtfmPitch','GenSpeed','TTDspFA'};
 req_states = {'PtfmPitch','TTDspFA','GenSpeed'};
 
 state_ind = find(contains(ChanName,req_states));
@@ -46,23 +46,31 @@ PtfmPitch = States(:,1); TTDspFA = States(:,2); GenSpeed = States(:,3);
 
 % required controls
 req_controls = {'RtVAvgxh','GenTq','BldPitch1'};
-controls_ind = find(contains(ChanName,req_controls));
-Controls = Channels(:,controls_ind);
+for i = 1:length(req_controls)
+    iInputs(i) = find(contains(ChanName,req_controls{i}));
+end
+u = Channels(:,iInputs);
 
-% load specific controls
-WindSpeed = Controls(:,1); GenTq = Controls(:,2); BldPitch = Controls(:,3);
+
+% % load specific controls
+% WindSpeed = u(:,1); GenTq = u(:,2); BldPitch = u(:,3);
 
 clear data
 data(1).time = Time;
 data(1).states = States;
-data(1).inputs = Controls;
+data(1).inputs = u;
 
-dindex = [1 3];
+dindex = 1:size(States,2);
 
 
 data = approximateStateDerivatives(data,dindex);
 
-state_names = req_states; state_names{end+1} = ['d',req_states{dindex(1)}]; state_names{end+1} = ['d',req_states{dindex(2)}];
+state_names = req_states;
+for k = 1:length(dindex)
+    state_names{end+1} = ['d',req_states{dindex(k)}];
+end
+input_names = req_controls;
+
 % load linearized model
 LinearModels = load(fullfile(fulldata_path,'pd_1.0_linear.mat'));
 
@@ -70,13 +78,13 @@ iCase = 1;
 model.sim_type = 'LPV';
 model.mdl = {};
 
-model = createDFSM(data,model,iCase,state_names);
+model = createDFSM(data,model,iCase,state_names,input_names);
 
 % [X_,Y_,maxX,maxY] = scaleData(X,Y);
 % [X_,Y_] = uniqueDataTol(X_,Y_,0.15);
 % X_ = unscaleData(X_,maxX);
 % Y_ = unscaleData(Y_,maxY);
-% 
+%
 % Y2 = Y_(:,2);
 % Y22 = Y(:,2);
 return

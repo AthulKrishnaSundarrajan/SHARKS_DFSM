@@ -1,5 +1,5 @@
 %
-function [X,Y] = uniqueDataTol(X,Y,tol)
+function [X,Y,I] = uniqueDataTol(X,Y,tol)
 
 % combine
 xy = [X,Y];

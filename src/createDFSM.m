@@ -1,4 +1,4 @@
-function model = createDFSM(data,model,iCase,state_names)
+function model = createDFSM(data,model,iCase,state_names,input_names)
 
 % extract state and input information
 Time = vertcat(data(iCase).time);
@@ -10,16 +10,18 @@ State_derivatives = vertcat(data(iCase).state_derivatives);
 X = [States,Inputs];
 Y = State_derivatives;
 
+% number of states
+ns = size(States,2);
 
 % input
 U = griddedInterpolant(data(iCase).time,data(iCase).inputs,'spline');
-dGenSpeed = griddedInterpolant(data(iCase).time,data(iCase).state_derivatives(:,2),'spline');
+% dGenSpeed = griddedInterpolant(data(iCase).time,data(iCase).state_derivatives(:,2),'spline');
 
 % simulation options
-t0 = 100;
-td = 500;
+t0 = min(Time);
+td = max(Time)-min(Time);
 TSPAN = [t0 t0+td];
-Y0 = data(iCase).states(t0 == data(iCase).time,:);
+Y0 = data(iCase).states(t0 == Time,:);
 OPTIONS = odeset('RelTol',1e-5,'AbsTol',1e-5);
 
 % extract options
@@ -41,46 +43,50 @@ switch sim_type
         end
 
         % run simulation
-         [TOUT,YOUT] = ode45(@(t,x) deriv_single(t,x,U,Ai,Bi,Di),TSPAN,Y0,OPTIONS);
+         [TOUT,YOUT] = ode45(@(t,x) deriv_lti(t,x,U,Ai,Bi,Di),TSPAN,Y0,OPTIONS);
 
     case 'LPV'
 
+        wmin = min(Inputs(:,1))+1;
+        wmax = max(Inputs(:,1))-1;
+
         % create or load model
         if isempty(mdl)
-            [Ai,Bi,Di] = DFSM_LPV(Inputs,States,State_derivatives);
+            [Ai,Bi,Di] = DFSM_LPV(Inputs,States,State_derivatives,wmin,wmax);
             model.mdl = {Ai,Bi,Di};
         else
             Ai = mdl{1}; Bi = mdl{2}; Di = mdl{3};
         end
-        
+
         % run simulation
-        [TOUT,YOUT] = ode45(@(t,x) deriv1(t,x,U,Ai,Bi,Di,dGenSpeed),TSPAN,Y0,OPTIONS);
+        [TOUT,YOUT] = ode45(@(t,x) deriv_lpv(t,x,U,Ai,Bi,Di,wmin,wmax),TSPAN,Y0,OPTIONS);
 
     case 'NN'
 
         % create or load model
         if isempty(mdl)
             [X_,Y_,maxX,maxY] = scaleData(X,Y);
-            [X_,Y_] = uniqueDataTol(X_,Y_,0.02);
+            [X_,Y_,I] = uniqueDataTol(X_,Y_,0.00);
+            X = X(I,:);
+            Y = Y(I,:);
 
             root_path = which('INSTALL_DFSM'); % obtain full function path
             data_path = fullfile(fileparts(root_path), 'data', filesep);
             fulldata_path = fullfile(data_path,'idetc');
 
-            net = nntrain(X_,Y_(:,[2,4,5]));
+            net = nntrain(X,Y(:,ns/2+1:end));
             genFunction(net,fullfile(fulldata_path,'mynet.m'))
 
-            model.mdl = {maxX,maxY}; 
+            model.mdl = {maxX,maxY};
 
         else
             maxX = model.mdl{1}; maxY = model.mdl{2};
 
         end
-        
-        % run simulation
-        [TOUT,YOUT] = ode45(@(t,x) deriv_net2(t,x,U,maxX,maxY,dGenSpeed),TSPAN,Y0,OPTIONS);
-end
 
+        % run simulation
+        [TOUT,YOUT] = ode45(@(t,x) deriv_net2(t,x,U,maxX,maxY,[]),TSPAN,Y0,OPTIONS);
+end
 
 % plot
 hf = figure;
@@ -91,7 +97,7 @@ nl = length(state_names);
 
 for i = 1:nl
 
-subplot(5,1,i); hold on
+subplot(nl,1,i); hold on
 plot(TOUT,YOUT(:,i),'r')
 plot(data(iCase).time,data(iCase).states(:,i),'k')
 title(state_names{i})
@@ -99,30 +105,18 @@ xlim([t0 t0+td])
 
 end
 
-
-% subplot(5,1,2); hold on
-% plot(TOUT,YOUT(:,2),'r')
-% plot(data(iCase).time,data(iCase).states(:,2),'k')
-% title('Gen Speed')
-% xlim([t0 t0+td])
-% 
-% subplot(5,1,3); hold on
-% plot(TOUT,YOUT(:,3),'r')
-% plot(data(iCase).time,data(iCase).states(:,3),'k')
-% title('TTDspFA')
-% xlim([t0 t0+td])
-% 
-% subplot(5,1,4); hold on
-% plot(TOUT,YOUT(:,4),'r')
-% plot(data(iCase).time,data(iCase).states(:,4),'k')
-% title('Deriv Ptfm Pitch')
-% xlim([t0 t0+td])
-% 
-% subplot(5,1,5); hold on
-% plot(TOUT,YOUT(:,5),'r')
-% plot(data(iCase).time,data(iCase).states(:,5),'k')
-% title('Deriv TTDspFA')
-% xlim([t0 t0+td])
+% plot power
+hf = figure; hold on
+hf.Color = 'w';
+IGenSpeed = strcmp(state_names,'GenSpeed');
+GenSpeed = YOUT(:,IGenSpeed);
+UOUT = U(TOUT);
+IGenTq = strcmp(input_names,'GenTq');
+GenTq = UOUT(:,IGenTq);
+plot(TOUT,GenSpeed.*GenTq)
+plot(Time,States(:,IGenSpeed).*Inputs(:,IGenTq))
+legend('simulation','actual')
+ylim([0 2e5])
 
 end
 
@@ -160,8 +154,8 @@ xu = [x(:);u(:)];
 dx = mynet(xu);
 
 dx(1) = x(4);
-dx(3) = x(5);
-% dx(2) = dGenSpeed(t);
+dx(2) = x(5);
+dx(3) = x(6);
 
 disp(t)
 
@@ -173,61 +167,62 @@ function dx = deriv_net2(t,x,U,maxX,maxY,dGenSpeed)
 u = U(t);
 
 xu = [x(:);u(:)];
-xu = xu./maxX(:);
+% xu = xu./maxX(:);
 
-maxY = maxY([2,4,5]);
+% maxY = maxY([2,4,5]);
 
 %
 dx_net = mynet(xu);
-dx_net = dx_net.*maxY(:);
+% dx_net = dx_net.*maxY(:);
 
-dx = zeros(5,1);
+ns = length(dx_net);
 
-dx(1) = x(4);
-dx(2) = dx_net(1);
-dx(3) = x(5);
-dx(4) = dx_net(2);
-dx(5) = dx_net(3);
-% dx(2) = dGenSpeed(t);
+dx = zeros(2*ns,1);
 
-%disp(t)
+dx(1:ns) = x(ns+1:end);
+dx(ns+1:end) = dx_net;
 
 end
 
-function dx = deriv1(t,x,U,Ai,Bi,Di,dGenSpeed)
+function dx = deriv_lti(t,x,U,Ai,Bi,Di)
+
+% get inputs
+u = U(t);
+
+% number of states
+ns = length(Ai)/2;
+
+% compute state derivatives (LTI model)
+dx = Ai*x + Bi*u(:) + Di;
+
+% update known derivative values
+dx(1:ns) = x(ns+1:end);
+
+% disp(t)
+
+end
+
+function dx = deriv_lpv(t,x,U,Ai,Bi,Di,wmin,wmax)
 
 % get wind speed
 u = U(t);
 w = u(1);
 u = u(1:3);
 
-if w > 16
-    w = 16;
+if w > wmax
+    w = wmax;
+elseif w < wmin
+    w = wmin;
 end
 
 %
 dx = Ai(w)*x + Bi(w)*u(:) + Di(w);
 
-dx(1) = x(4);
-dx(3) = x(5);
+% number of states
+ns = length(Ai(w))/2;
 
-% dx(2) = dGenSpeed(t);
-
-end
-
-function dx = deriv_single(t,x,U,Ai,Bi,Di)
-
-% get wind speed
-u = U(t);
-w = u(1);
-% u = u;
-
-dx = Ai*x + Bi*u(:) + Di;
-
-dx(1) = x(4);
-dx(3) = x(5);
-
-% disp(t)
+% update known derivative values
+dx(1:ns) = x(ns+1:end);
 
 end
 
@@ -242,21 +237,24 @@ ABD = linsolve(data,State_derivatives);
 % transpose
 ABD = ABD';
 
+% number of states and inputs
+ns = size(States,2);
+nu = size(Inputs,2);
+
 % extract
-Ai = ABD(:,1:5);
-Bi = ABD(:,6:8);
-Di = ABD(:,9);
+Ai = ABD(:,1:ns);
+Bi = ABD(:,(ns+1):(ns+nu));
+Di = ABD(:,end);
 
 end
 
-
-function [Ai,Bi,Di] = DFSM_LPV(Inputs,States,State_derivatives)
+function [Ai,Bi,Di] = DFSM_LPV(Inputs,States,State_derivatives,wmin,wmax)
 
 w = Inputs(:,1);
 maxW = max(w);
 minW = min(w);
 
-W = linspace(7,16,50);
+W = linspace(wmin,wmax,50);
 dw = W(2)-W(1);
 offset = 3;
 
@@ -265,8 +263,6 @@ offset = 3;
 
 % W = mean(w);
 % offset = 100;
-
-
 
 for k = 1:length(W)
 
@@ -303,15 +299,18 @@ for k = 1:length(W)
 %     mdl(k).B = [0 0 0; AB(2,6:8); 0 0 0; AB(1,6:8); AB(3,6:8)];
 %     mdl(k).D = [0; AB(2,9); 0; AB(1,9); AB(3,9)];
 
-    mdl(k).A = AB(:,1:5);
-    mdl(k).B = AB(:,6:8);
-    mdl(k).D = AB(:,9);
+    % number of states and inputs
+    ns = size(States,2);
+    nu = size(Inputs,2);
+
+    mdl(k).A = AB(:,1:ns);
+    mdl(k).B = AB(:,(ns+1):(ns+nu));
+    mdl(k).D = AB(:,end);
 
 
 %     {'PtfmPitch','GenSpeed','TTDspFA','d_PtfmPitch','d_TTDspFA'};
 %     {'d_PtfmPitch','d_GenSpeed','d_TTDspFA','d2_PtfmPitch','d2_TTDspFA'};
 %     {'d2_PtfmPitch','d_GenSpeed','d2_TTDspFA'}
-
 
     Dx_mdl = [x_,u_,ones(sum(Iw),1)]*AB';
 

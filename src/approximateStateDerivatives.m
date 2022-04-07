@@ -2,7 +2,7 @@ function data = approximateStateDerivatives(data,dindex)
 
 % TODO: save original data
 
-plotflag = 0;
+plotflag = false;
 filterflag = true;
 d_PtfmPitchflag = false;
 
@@ -122,7 +122,7 @@ for iCase = 1:nDLCs
 
         % assign derivatives
 %         data(iCase).state_derivatives = [D2x(1,:)',Dx(2,:)',D2x(3,:)'];
-        data(iCase).state_derivatives = [Dx(1,:)',Dx(2,:)',Dx(3,:)',D2x(dindex(1),:)',D2x(dindex(2),:)'];
+        data(iCase).state_derivatives = [Dx',D2x(dindex,:)'];
 
 %         data(iCase).state_derivative_names = {'d_PtfmPitch','d_GenSpeed'};
 
