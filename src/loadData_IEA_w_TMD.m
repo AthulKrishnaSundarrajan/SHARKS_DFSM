@@ -4,13 +4,15 @@ close all;
 
 root_path = which('INSTALL_DFSM'); % obtain full function path
 data_path = fullfile(fileparts(root_path), 'data', filesep);
-fulldata_path = fullfile(data_path,'IEA_w_TMD2');
+fulldata_path = fullfile(data_path,'IEA_15'); % new data
 
+%% Options for different simulation results
 % prefix and suffix of output files
-prefix = 'lin_'; % near rated region
-% prefix = 'lin_rated_'; % rated
-suffix = '.outb';
+prefix = 'lin1_'; % simulations without TTDspFA
+% prefix = 'lin_'; % simulations with TTDspFA
 
+suffix = '.outb';
+%%
 % get all the files in the directory
 Out_files = dir(fullfile(fulldata_path,[prefix,'*',suffix]));
 
@@ -26,10 +28,12 @@ else
 end
 
 % required outputs
-output_names = {'RtVAvgxh','GenTq','BldPitch1','PtfmPitch','GenSpeed','GenPwr'};
-% req_states = {'PtfmPitch','TipDxb1','GenSpeed'};
-% req_states = {'PtfmPitch','GenSpeed','RotThrust','RotTorq','NcIMURAys'};
+output_names = {'RtVAvgxh','GenTq','BldPitch1','PtfmPitch','GenSpeed'};
+% output_names = {'RtVAvgxh','GenTq','BldPitch1','PtfmPitch','GenSpeed','TTDspFA'};
+
 req_states = {'PtfmPitch','GenSpeed'};
+%req_states = {'PtfmPitch','GenSpeed','TTDspFA'};
+
 req_controls = {'RtVAvgxh','GenTq','BldPitch1'};
 n_names = length(output_names);iTime = 1;
 sim_plot = 1;
@@ -79,7 +83,9 @@ for iCase = 1:nLinCases
     data(iCase).state_names = ChanName(iStates);
     data(iCase).input_names = ChanName(iInputs);
 
+   
 end
+
 
 % specify which states derivative is included
 dindex = 1:length(req_states);
@@ -96,14 +102,14 @@ end
 
 % generate model using first simulation
 iCase = 1;
-model.sim_type = 'NN';
+model.sim_type = 'LTI';
 model.mdl = {};
 
 % create DFSM
-model = createDFSM(data,model,iCase,state_names);
+model = createDFSM(data,model,iCase,state_names,req_controls);
 
 % for the second state run simulations using model from the first state
 iCase = 2;
-model = createDFSM(data,model,iCase,state_names);
+model = createDFSM(data,model,iCase,state_names,req_controls);
 
 end

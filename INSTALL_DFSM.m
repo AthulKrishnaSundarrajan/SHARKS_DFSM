@@ -108,17 +108,17 @@ zips(ind).url = 'https://github.com/dzalkind/matlab-toolbox/archive/master.zip';
 zips(ind).folder = 'matlab-toolbox';
 zips(ind).test = 'ProcLinModels';
 
-% % zip 3
+% zip 3
 % ind = ind+1;
 % zips(ind).url = 'https://www.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/47246/versions/3/download/zip';
 % zips(ind).folder = 'Tint.zip';
 % zips(ind).test = 'tint';
-% 
+%  
 % % zip 4
-% ind = ind+1;
-% zips(ind).url = 'https://colostate-my.sharepoint.com/:f:/g/personal/athulsun_colostate_edu/EiBGvOt_n4NJgRMKFfP0WRYBgfxd-6hiRtC3BupZu7NSZA&download=1';
-% zips(ind).folder = 'DataFiles.zip';
-% zips(ind).test = 'IEA_w_TMD_0.outb';
+% ind = ind + 1; % increment
+% zips(ind).url = 'https://github.com/danielrherber/dt-qp-project/archive/master.zip';
+% zips(ind).folder = 'DTQP';
+% zips(ind).test = 'INSTALL_DTQP';
 
 
 % obtain full function path

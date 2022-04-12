@@ -2,7 +2,7 @@ function data = approximateStateDerivatives(data,dindex)
 
 % TODO: save original data
 
-plotflag = false;
+plotflag = 0;
 filterflag = true;
 d_PtfmPitchflag = false;
 
