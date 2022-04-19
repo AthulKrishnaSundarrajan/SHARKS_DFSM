@@ -4,11 +4,11 @@ close all;
 
 root_path = which('INSTALL_DFSM'); % obtain full function path
 data_path = fullfile(fileparts(root_path), 'data', filesep);
-fulldata_path = fullfile(data_path,'IEA_15'); % new data
+fulldata_path = fullfile(data_path,'sim_AllDLC'); % new data
 
 %% Options for different simulation results
 % prefix and suffix of output files
-prefix = 'lin1_'; % simulations without TTDspFA
+prefix = 'lin_'; % simulations without TTDspFA
 % prefix = 'lin_'; % simulations with TTDspFA
 
 suffix = '.outb';
@@ -36,14 +36,14 @@ req_states = {'PtfmPitch','GenSpeed'};
 
 req_controls = {'RtVAvgxh','GenTq','BldPitch1'};
 n_names = length(output_names);iTime = 1;
-sim_plot = 1;
+sim_plot = 0;
 
 % go through each case
 for iCase = 1:nLinCases
 
     switch suffix
         case '.outb'
-            [Channels, ChanName, ChanUnit, DescStr] = ReadFASTbinary(fullfile(fulldata_path,[prefix,num2str(iCase-1,'%01d'),suffix]));
+            [Channels, ChanName, ChanUnit, DescStr] = ReadFASTbinary(fullfile(fulldata_path,[prefix,num2str(iCase-1,numstring),suffix]));
         case '.mat'
             load([prefix,num2str(iCase-1,'%01d'),suffix]);
     end

@@ -34,7 +34,7 @@ Xf = filtfilt(b,1,X(:,I));
 X_ = X;
 X_(:,I) = Xf;
 
-plotflag = false;
+plotflag = true;
 
 if plotflag
 
