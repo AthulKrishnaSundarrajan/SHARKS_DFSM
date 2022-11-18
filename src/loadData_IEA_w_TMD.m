@@ -4,7 +4,7 @@ close all;
 
 root_path = which('INSTALL_DFSM'); % obtain full function path
 data_path = fullfile(fileparts(root_path), 'data', filesep);
-fulldata_path = fullfile(data_path,'sim_AllDLC'); % new data
+fulldata_path = fullfile(data_path,'DFSM_step'); % new data
 
 %% Options for different simulation results
 % prefix and suffix of output files
@@ -12,6 +12,7 @@ prefix = 'lin_'; % simulations without TTDspFA
 % prefix = 'lin_'; % simulations with TTDspFA
 
 suffix = '.outb';
+
 %%
 % get all the files in the directory
 Out_files = dir(fullfile(fulldata_path,[prefix,'*',suffix]));
@@ -31,12 +32,16 @@ end
 output_names = {'RtVAvgxh','GenTq','BldPitch1','PtfmPitch','GenSpeed'};
 % output_names = {'RtVAvgxh','GenTq','BldPitch1','PtfmPitch','GenSpeed','TTDspFA'};
 
-req_states = {'PtfmPitch','GenSpeed'};
-%req_states = {'PtfmPitch','GenSpeed','TTDspFA'};
+%req_states = {'PtfmPitch','GenSpeed'};
+req_states = {'PtfmPitch','TTDspFA','GenSpeed'};
 
-req_controls = {'RtVAvgxh','GenTq','BldPitch1'};
+req_controls = {'Wind1VelX','GenTq','BldPitch1'};
 n_names = length(output_names);iTime = 1;
 sim_plot = 0;
+
+wind = cell(nLinCases,1);
+
+reduce_samples = true;
 
 % go through each case
 for iCase = 1:nLinCases
@@ -76,6 +81,18 @@ for iCase = 1:nLinCases
     x = Channels(:,iStates); %x(:,1) = deg2rad(x(:,1));
     u = Channels(:,iInputs);
 
+    if reduce_samples
+
+        nt = 1000;
+        t_ = linspace(t(1),t(end),nt);
+        x = interp1(t,x,t_,'pchip');
+        u = interp1(t,u,t_,'pchip');
+        t = t_;
+
+
+
+    end
+
     % assign
     data(iCase).time = t;
     data(iCase).states = x;
@@ -83,15 +100,18 @@ for iCase = 1:nLinCases
     data(iCase).state_names = ChanName(iStates);
     data(iCase).input_names = ChanName(iInputs);
 
+    wind{iCase} = u(:,1);
+
    
 end
+
 
 
 % specify which states derivative is included
 dindex = 1:length(req_states);
 
 % approximate state derivatives
-data = approximateStateDerivatives(data,dindex);
+data = approximateStateDerivatives(data,dindex,1,1);
 
 % add state names
 LinearModels = [];
@@ -101,15 +121,36 @@ for k = 1:length(dindex)
 end
 
 % generate model using first simulation
-iCase = 1;
+t_case = 2;
 model.sim_type = 'LTI';
 model.mdl = {};
 
 % create DFSM
-model = createDFSM(data,model,iCase,state_names,req_controls);
+model = createDFSM(data,model,t_case,state_names,req_controls);
 
 % for the second state run simulations using model from the first state
-iCase = 2;
-model = createDFSM(data,model,iCase,state_names,req_controls);
+v_case = 3;
+model = createDFSM(data,model,v_case,state_names,req_controls);
+
+% plot histogram
+hf = figure;
+hf.Color = 'w';
+hold on;
+
+histogram(wind{t_case})
+histogram(wind{v_case})
+
+legend('T','V')
+
+
+tcase_range = [max(wind{t_case}),min(wind{t_case})];
+
+hf = figure;
+hf.Color = 'w';
+
+hold on;
+
+yline(tcase_range);
+plot(data(v_case).time,wind{v_case});
 
 end

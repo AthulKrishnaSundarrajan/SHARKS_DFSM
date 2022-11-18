@@ -1,9 +1,9 @@
-function data = approximateStateDerivatives(data,dindex)
+function data = approximateStateDerivatives(data,dindex,filterflag,t_f)
 
 % TODO: save original data
 
 plotflag = 0;
-filterflag = false;
+%filterflag = 1;
 d_PtfmPitchflag = false;
 
 datacase = 3;
@@ -22,8 +22,9 @@ for iCase = 1:nDLCs
 
     % filter data
     if filterflag
-        u_ = smoothData(t,u,[1]);
-        x_ = smoothData2(t,x);
+        %u_ = smoothData(t,u,[1]);
+        u_ = u;
+        x_ = smoothData(t,x,[1,2],t_f);
     else
         u_ = u;
         x_ = x;

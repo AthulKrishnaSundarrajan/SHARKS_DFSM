@@ -1,23 +1,23 @@
 %
-function X_ = smoothData(t,X,varargin)
+function X_ = smoothData(t,X,I,t_f)
 
 %
-if isempty(varargin)
-
-    I = 1:size(X,2);
-
-else
-
-    I = varargin{1};
-
-    if isempty(I)
-        X_ = X;
-    end
-
-end
+% if isempty(varargin)
+% 
+%     I = 1:size(X,2);
+% 
+% else
+% 
+%     I = varargin{1};
+% 
+%     if isempty(I)
+%         X_ = X;
+%     end
+% 
+% end
 
 %
-t_f = 1;
+%t_f = 0.1;
 
 %
 dt = t(2) - t(1);
@@ -34,7 +34,7 @@ Xf = filtfilt(b,1,X(:,I));
 X_ = X;
 X_(:,I) = Xf;
 
-plotflag = true;
+plotflag = 0;
 
 if plotflag
 
