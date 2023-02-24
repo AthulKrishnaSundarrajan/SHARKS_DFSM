@@ -11,13 +11,31 @@ m = 1;
 t0 = 0;
 tf = 5;
 
+sig_n = 0.3;
+
 % control (input)
-U = @(t,p) 5*sin(exp(0.08.*t).*t + p);
+%U = @(t,p) 5*sin(exp(0.08.*t).*t + p);
+
+nt = 1000;
+t_ = linspace(t0,tf,nt);
+
+U_ = 2+sin((2*pi).*(1:nt)/40);
+
+U_ = U_ + 0.3.*randn(size(U_));
+
+hf = figure;hf.Color = 'w';
+hold on;
+plot(t_,U_)
+
+U = @(t,p) interp1(t_,U_,t);
 
 % initial states and phase array
-n = 20;
+n = 2;
 Y0array = -5 + 10*rand(2,n);
 p = pi/2*rand(n,1);
+
+hf = figure;hf.Color = 'w';
+hold on
 
 % go through each simulation
 for k = 1:size(Y0array,2)
@@ -26,7 +44,7 @@ for k = 1:size(Y0array,2)
     Y0 = Y0array(:,k);
 
     % simulation options
-    OPTIONS = odeset('RelTol',1e-6,'AbsTol',sqrt(eps));
+    OPTIONS = odeset('RelTol',1e-6,'AbsTol',1e-6);
 
     % run nonlinear simulation
     [T1,Y1] = ode45(@(t,y) f(t,y,U(t,p(k)),m),[t0 tf],Y0,OPTIONS);
@@ -46,6 +64,15 @@ for k = 1:size(Y0array,2)
         DY1(:,kk) = f(T1(kk),Y1(kk,:),U(T1(kk),p(k)),m);
 
     end
+
+    plot(T1,PDY1(2,:),'ro')
+    plot(T1,DY1(2,:),'k')
+    
+    plot(T1,PDY1(1,:),'ro')
+    plot(T1,DY1(1,:),'k')
+
+    legend('poly approx','actual')
+    xlabel('time'); ylabel('dY1')
 
     % assign
     T1array{k} = T1(:)';

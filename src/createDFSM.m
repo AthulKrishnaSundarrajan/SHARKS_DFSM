@@ -73,7 +73,7 @@ switch sim_type
 
             root_path = which('INSTALL_DFSM'); % obtain full function path
             data_path = fullfile(fileparts(root_path), 'data', filesep);
-            fulldata_path = fullfile(data_path,'DFSM');
+            fulldata_path = fullfile(data_path,'DFSM_wo_FA2');
 
             net = nntrain(X,Y);
             genFunction(net,fullfile(fulldata_path,'mynet.m'))
@@ -147,7 +147,7 @@ plot(Time,States(:,IGenSpeed).*Inputs(:,IGenTq),'k')
 xlabel('Time [s]')
 ylabel('Generator Power [kW]')
 legend('DFSM','OpenFAST')
-ylim([0 2e5])
+%ylim([0 2e5])
 sgtitle(title_name)
 
 if exportflag

@@ -13,15 +13,23 @@ data = [];
 data = loadIDETCdata(fulldata_path,type1,req_states,req_controls);
 
 % validation
-type2 = 'step';
-data2 = loadIDETCdata(fulldata_path,type2,req_states,req_controls);
-
-data(2) = data2;
-
-dindex = 1:length(req_states);
+% type2 = 'step';
+% data2 = loadIDETCdata(fulldata_path,type2,req_states,req_controls);
+% 
+% data(2) = data2;
+% 
+ dindex = 1:length(req_states);
 
 
 data = approximateStateDerivatives(data,dindex,0,5);
+
+
+s2 = smoothData2(data.time,data.states(:,2));
+
+hf = figure;
+hf.Color = 'w';hold on
+plot(data.time,data.states(:,2),'r--')
+plot(data.time,s2,'ko')
 
 state_names = req_states;
 for k = 1:length(dindex)
@@ -33,7 +41,7 @@ input_names = req_controls;
 LinearModels = load(fullfile(fulldata_path,'pd_1.0_linear.mat'));
 
 iCase = 1;
-model.sim_type = 'NN';
+model.sim_type = 'LPV';
 model.mdl = {};
 
 model = createDFSM(data,model,iCase,state_names,input_names);

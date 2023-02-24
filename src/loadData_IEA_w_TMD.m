@@ -4,7 +4,7 @@ close all;
 
 root_path = which('INSTALL_DFSM'); % obtain full function path
 data_path = fullfile(fileparts(root_path), 'data', filesep);
-fulldata_path = fullfile(data_path,'DFSM_step'); % new data
+fulldata_path = fullfile(data_path,'transition_case'); % new data
 
 %% Options for different simulation results
 % prefix and suffix of output files
@@ -33,15 +33,15 @@ output_names = {'RtVAvgxh','GenTq','BldPitch1','PtfmPitch','GenSpeed'};
 % output_names = {'RtVAvgxh','GenTq','BldPitch1','PtfmPitch','GenSpeed','TTDspFA'};
 
 %req_states = {'PtfmPitch','GenSpeed'};
-req_states = {'PtfmPitch','TTDspFA','GenSpeed'};
+req_states = {'PtfmPitch','GenSpeed'};
 
-req_controls = {'Wind1VelX','GenTq','BldPitch1'};
+req_controls = {'RtVAvgxh','GenTq','BldPitch1'};
 n_names = length(output_names);iTime = 1;
-sim_plot = 0;
+sim_plot = 1;
 
 wind = cell(nLinCases,1);
 
-reduce_samples = true;
+reduce_samples = ~true;
 
 % go through each case
 for iCase = 1:nLinCases
@@ -89,10 +89,10 @@ for iCase = 1:nLinCases
         u = interp1(t,u,t_,'pchip');
         t = t_;
 
-
-
     end
 
+    u_scale = [1,1e0,1];
+    u = u./u_scale;
     % assign
     data(iCase).time = t;
     data(iCase).states = x;
@@ -111,7 +111,16 @@ end
 dindex = 1:length(req_states);
 
 % approximate state derivatives
-data = approximateStateDerivatives(data,dindex,1,1);
+data = approximateStateDerivatives(data,dindex,1,2);
+
+sd = data(1).state_derivatives;
+
+hf = figure;hf.Color = 'w';
+for i = 1:4
+    subplot(2,2,i)
+    plot(t,sd(:,i))
+
+end
 
 % add state names
 LinearModels = [];
@@ -121,7 +130,7 @@ for k = 1:length(dindex)
 end
 
 % generate model using first simulation
-t_case = 2;
+t_case = 1;
 model.sim_type = 'LTI';
 model.mdl = {};
 
@@ -129,7 +138,7 @@ model.mdl = {};
 model = createDFSM(data,model,t_case,state_names,req_controls);
 
 % for the second state run simulations using model from the first state
-v_case = 3;
+v_case = 2;
 model = createDFSM(data,model,v_case,state_names,req_controls);
 
 % plot histogram
