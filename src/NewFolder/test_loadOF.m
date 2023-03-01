@@ -55,19 +55,25 @@ tmax = [];
 sim_details = simulation_details(sim_files,reqd_states,reqd_controls,filter_flag,filter_args,tmin,tmax);
 
 
-split = [0.8,0.2];
+split = [0.9,0.1];
 
 
 % dfsm options
 dfsm_options.ltype = 'LTI';
-dfsm_options.ntype = 'GPR';
-dfsm_options.lsamples = 500;
-dfsm_options.nsamples = 1000;
+dfsm_options.ntype = 'NN';
+dfsm_options.lsamples = nan;
+dfsm_options.nsamples = nan;
 dfsm_options.sampling_type = 'KM';
 dfsm_options.train_test_split = split;
 
 
 dfsm = DFSM(sim_details,dfsm_options);
+
+lm = dfsm.lin;
+lm = lm';
+
+x = lm(1:2,1:2);
+
 
 return
 

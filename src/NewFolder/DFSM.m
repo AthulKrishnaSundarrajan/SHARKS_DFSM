@@ -11,7 +11,7 @@ function dfsm =  DFSM(sim_details,dfsm_options)
 
     % get the train/test splits
     train_sp = train_test_split(1);
-    test = train_test_split(2);
+    test_sp = train_test_split(2);
 
     % number of simulations
     nsim = length(sim_details);
@@ -23,7 +23,7 @@ function dfsm =  DFSM(sim_details,dfsm_options)
     test_split = floor(train_sp*nsim)+1:nsim;
     
     train_samples = sim_details(train_split);
-    test_samples = sim_details(train_split);
+    test_samples = sim_details(test_split);
 
     % add number of inputs and outputs to dfsm struct
     dfsm.ninputs = ninputs;
@@ -35,11 +35,16 @@ function dfsm =  DFSM(sim_details,dfsm_options)
         % no linear function
         dfsm.lin = [];
         dfsm.ltype = ltype;
+        dfsm.lin_sample = 0;
+        dfsm.lin_construct = 0;
     
         % sample the inputs and outputs
+        tic
         [input_sampled,output_sampled,~,~] = sample_data(train_samples,sampling_type,nsamples);
+        dfsm.nonlin_sample = toc;
 
         % check the options
+        tic
         switch ntype
 
             case 'RBF'
@@ -53,8 +58,8 @@ function dfsm =  DFSM(sim_details,dfsm_options)
 
                 nonlin = cell(noutputs,1);
             
-                for i = 1:noutputs
-                     nonlin{i} = fitrgp(input_sampled,output_sampled(:,i)); % ,'KernelFunction','squaredexponential', 'OptimizeHyperparameters','auto','HyperparameterOptimizationOptions',...
+                parfor i = 1:noutputs
+                     nonlin{i} = fitrgp(input_sampled,output_sampled(:,i),'KernelFunction','squaredexponential'); % ,'KernelFunction','squaredexponential', 'OptimizeHyperparameters','auto','HyperparameterOptimizationOptions',...
                         % struct('AcquisitionFunctionName','expected-improvement-plus'), 'Verbose',1,
                 end
 
@@ -70,6 +75,7 @@ function dfsm =  DFSM(sim_details,dfsm_options)
                 net.divideParam.trainRatio = 70/100;
                 net.divideParam.valRatio = 15/100;
                 net.divideParam.testRatio = 15/100;
+                net.trainParam.max_fail = 5000;
                 
                 % train the Network
                 net = train(net,input_sampled',output_sampled');
@@ -77,6 +83,7 @@ function dfsm =  DFSM(sim_details,dfsm_options)
 
 
         end
+        dfsm.nonlin_construct = toc;
 
         % store
         dfsm.nonlin = nonlin;
@@ -84,11 +91,17 @@ function dfsm =  DFSM(sim_details,dfsm_options)
     
     else 
 
-         % sample the inputs and outputs
+
+
+        % sample the inputs and outputs
+        tic
         [input_sampled,output_sampled,inputs,outputs] = sample_data(train_samples,sampling_type,lsamples);
+        dfsm.lin_sample = toc;
 
         % construct a linear fit
-        lm = linsolve(input_sampled,output_sampled);
+        tic
+        lm = linsolve(inputs,outputs);
+        dfsm.lin_construct = toc;
 
         % store linear model
         dfsm.lin = lm;
@@ -98,9 +111,14 @@ function dfsm =  DFSM(sim_details,dfsm_options)
         dx_error = outputs - inputs*lm;
 
         % sample the input and output points
-        [input_error,dx_error_sampled] = perform_KM(inputs,dx_error,nsamples);
+        error_IO = {inputs,dx_error};
+
+        tic
+        [input_error,dx_error_sampled,~,~] = sample_data(error_IO,sampling_type,nsamples);
+        dfsm.nonlin_sample = toc;
 
         % corrective function
+        tic;
         switch ntype
 
             case 'RBF'
@@ -115,14 +133,33 @@ function dfsm =  DFSM(sim_details,dfsm_options)
                 nonlin = cell(noutputs,1);
             
                 for i = 1:noutputs
-                     nonlin{i} = fitrgp(input_error,dx_error_sampled(:,i)); % ,'KernelFunction','squaredexponential', 'OptimizeHyperparameters','auto','HyperparameterOptimizationOptions',...
+                     nonlin{i} = fitrgp(input_error,dx_error_sampled(:,i),'KernelFunction','squaredexponential','OptimizeHyperparameters','auto','HyperparameterOptimizationOptions',...
+                        struct('AcquisitionFunctionName','expected-improvement-plus','UseParallel',true)); 
+                     % ,'KernelFunction','squaredexponential', 'OptimizeHyperparameters','auto','HyperparameterOptimizationOptions',...
                         % struct('AcquisitionFunctionName','expected-improvement-plus'), 'Verbose',1,
                 end
 
             case 'NN'
 
+                trainFcn = 'trainlm';  % Levenberg-Marquardt backpropagation.
+
+                % create a Fitting Network
+                hiddenLayerSize = 60;
+                net = fitnet(hiddenLayerSize,trainFcn);
+                
+                % setup Division of Data for Training, Validation, Testing
+                net.divideParam.trainRatio = 70/100;
+                net.divideParam.valRatio = 15/100;
+                net.divideParam.testRatio = 15/100;
+                net.trainParam.max_fail = 5000;
+                
+                % train the Network
+                net = train(net,input_error',dx_error_sampled');
+                nonlin = net;
+
 
         end
+        dfsm.nonlin_construct = toc;
 
         dfsm.nonlin = nonlin;
         dfsm.ntype = ntype;
@@ -130,7 +167,7 @@ function dfsm =  DFSM(sim_details,dfsm_options)
     end
 
     % test and plot the predictions
-    test_dfsm(dfsm,test_samples,1)
+    dfsm = test_dfsm(dfsm,test_samples,1:length(test_samples));
 
 
 
@@ -144,23 +181,31 @@ function [input_sampled,output_sampled,inputs,outputs] = sample_data(train_sampl
     %   2. k-means clustering sampling - 'KM'
     
     % extract data from structure
-    [inputs,outputs] = struct2cell_dfsm(train_samples);
+    if isstruct(train_samples)
+        [inputs,outputs] = struct2cell_dfsm(train_samples);
+
+        % concatenate
+        inputs = vertcat(inputs{:});
+        outputs = vertcat(outputs{:});
+
+    elseif iscell(train_samples)
+        inputs = train_samples{1};
+        outputs = train_samples{2};
+    end
+
+    if isnan(n_samples)
+        input_sampled = inputs;
+        output_sampled = outputs;
+
+        return
+    end
+
     
-    % concatenate
-    inputs = vertcat(inputs{:});
-    outputs = vertcat(outputs{:});
+    
 
     % sample
     switch sampling_type
  
-    %     case 'ED'
-    %         
-    %         % get the length
-    %         nt = size(inputs,1);
-    % 
-    %         index = 
-    % 
-    %         sampling_index = 
     
         case 'KM'
             % perform k means clustering
@@ -208,10 +253,13 @@ for isample = 1:nsamples
 end
 end
 
-function test_dfsm(dfsm,sim_details,ind)
+function dfsm = test_dfsm(dfsm,sim_details,ind)
 
     % function to test the constructed dfsm
     ntest = length(ind);
+
+    time_simulation = zeros(ntest,1);
+    time_eval = zeros(ntest,1);
 
 
     for itest = 1:ntest
@@ -223,19 +271,48 @@ function test_dfsm(dfsm,sim_details,ind)
         state_derivatives = sim_details(itest).state_derivatives;
         noutputs = sim_details(itest).noutputs;
 
-        u_fun = @(t) interp1(time,controls,t,'spline');
+        u_pp =spline(time,controls');
+        u_fun = @(t) ppval(u_pp,t);
+        
         x0 = states(1,:)';
 
         % define solution options
         options = odeset('RelTol',1e-5,'AbsTol',1e-5);
-
+        
+        tic
         [T,X] = ode45(@(t,x) ode_dfsm(t,x,u_fun,dfsm),[time(1),time(end)],x0,options);
+        time_simulation(itest) = toc;
 
         inputs = [states,controls];
-
+        
+        tic
         outputs = evaluate_dfsm(dfsm,inputs);
+        time_eval(itest) = toc;
+
         outputs = outputs';
 
+        % plot inputs
+        hf = figure;
+        hf.Color = 'w';
+        sgtitle('Controls')
+        
+        idx = 1;
+        subplot(3,1,idx)
+        plot(time,controls(:,idx),"LineWidth",1)
+        xlabel('Time [s]')
+        ylabel(sim_details(itest).control_names{idx})
+
+        idx = idx+1;
+        subplot(3,1,idx)
+        plot(time,controls(:,idx),"LineWidth",1)
+        xlabel('Time [s]')
+        ylabel(sim_details(itest).control_names{idx})
+
+        idx = idx+1;
+        subplot(3,1,idx)
+        plot(time,controls(:,idx),"LineWidth",1)
+        xlabel('Time [s]')
+        ylabel(sim_details(itest).control_names{idx})
 
         % plot
         hf = figure;
@@ -248,6 +325,8 @@ function test_dfsm(dfsm,sim_details,ind)
         hold on;
         plot(time,outputs(:,idx),"LineWidth",1)
         plot(time,state_derivatives(:,idx),"LineWidth",1)
+        xlabel('Time [s]')
+        ylabel(['d',sim_details(itest).state_names{idx}])
         legend('DFSM','OF')
 
         idx = idx +1;
@@ -255,6 +334,8 @@ function test_dfsm(dfsm,sim_details,ind)
         hold on;
         plot(time,outputs(:,idx),"LineWidth",1)
         plot(time,state_derivatives(:,idx),"LineWidth",1)
+        xlabel('Time [s]')
+        ylabel(['d',sim_details(itest).state_names{idx}])
         legend('DFSM','OF')
         
         % plot
@@ -268,6 +349,8 @@ function test_dfsm(dfsm,sim_details,ind)
         hold on;
         plot(T,X(:,idx),"LineWidth",1)
         plot(time,states(:,idx),"LineWidth",1)
+        xlabel('Time [s]')
+        ylabel(sim_details(itest).state_names{idx})
         legend('DFSM','OF')
 
         idx = idx +1;
@@ -275,11 +358,15 @@ function test_dfsm(dfsm,sim_details,ind)
         hold on;
         plot(T,X(:,idx),"LineWidth",1)
         plot(time,states(:,idx),"LineWidth",1)
+        xlabel('Time [s]')
+        ylabel(sim_details(itest).state_names{idx})
         legend('DFSM','OF')
 
-
-
     end
+
+    dfsm.test_simulation = mean(time_simulation);
+    dfsm.test_eval = mean(time_eval);
+
 end
 
 function dx = ode_dfsm(t,x,u_fun,dfsm)

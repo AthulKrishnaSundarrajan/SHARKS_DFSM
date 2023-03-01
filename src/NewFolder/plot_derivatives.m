@@ -19,7 +19,7 @@ dfsm_options.ltype = '';
 dfsm_options.ntype = 'NN';
 dfsm_options.lsamples = 50;
 dfsm_options.nsamples = 100;
-dfsm_options.sampling_type = 'KM';
+dfsm_options.sampling_type = 'random';
 dfsm_options.train_test_split = split;
 
 
