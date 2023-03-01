@@ -43,13 +43,19 @@ function sim_detail = load_openfast_sim(sim_name,reqd_states,reqd_controls,tmin,
     end
 
     % extract control index
+    gt_flag = false(length(reqd_controls),1);
     for i = 1:length(reqd_controls)
         control_ind(i) = find(contains(ChanName,reqd_controls{i}));
+
+        if strcmpi(reqd_controls{i},'GenTq')
+            gt_flag(i) = true;
+        end
     end
 
     % extract channels
     states = Channels(t_ind,state_ind);
     controls = Channels(t_ind,control_ind);
+    controls(:,gt_flag) = controls(:,gt_flag)/1000;
 
     % add to struct
     sim_detail.time = time;

@@ -6,23 +6,12 @@ function sim_details = filter_signals(sim_details,filter_args)
     states = sim_details.states;
     controls = sim_details.controls;
 
-    % EXTRACT ARGUMENTS
+    % extract arguments
     filt_states = filter_args.filt_states;
     filt_states_tf = filter_args.filt_states_tf;
 
     filt_controls = filter_args.filt_controls;
     filt_controls_tf = filter_args.filt_controls_tf;
-
-    % plot
-%     if filter_args.plot_flag
-% 
-%         ns = length(filt_states);
-% 
-%         for i = 1:ns
-%             hf = figure; hf.Color = 'w';
-%             hold on;
-% 
-%             plot()
     
     % filter states
     for ist = 1:length(filt_states)

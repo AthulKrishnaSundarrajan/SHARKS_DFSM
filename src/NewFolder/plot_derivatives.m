@@ -1,46 +1,51 @@
 clc;clear; close all;
 
+% set seed
+rng('default')
+
+% define parameters
+t0 = 0; tf = 5;
+umin = -5; umax = 5;
+nt = 200; nsamples = 10;
+fun_name = 'vanderpol';
+
+% run simulation and get results
+sim_details = run_simulation(t0,tf,nt,nsamples,umin,umax,fun_name);
+
+split = [0.8,0.2];
+
+% dfsm options
+dfsm_options.ltype = '';
+dfsm_options.ntype = 'NN';
+dfsm_options.lsamples = 50;
+dfsm_options.nsamples = 100;
+dfsm_options.sampling_type = 'KM';
+dfsm_options.train_test_split = split;
 
 
+dfsm = DFSM(sim_details,dfsm_options);
 
 
+% 
+% 
+% % evaluate the difference between actual and polynomial approximate
+% dx_act = vertcat(dXcell_act{:});
+% dx_poly = vertcat(dXcell_poly{:});
+% dx_diff = dx_act-dx_poly;
+% 
+% % plot 
+% nplot = 5;
+% hf = figure; hf.Color = 'w';
+% hold on;
+% plot(Tcell{nplot},dXcell_act{nplot},'k','linewidth',1)
+% plot(Tcell{nplot},dXcell_poly{nplot},'r--','linewidth',1)
+% 
+% % histogram
+% hf = figure;hf.Color = 'w';
+% hold on;
+% histogram(dx_diff(:,1))
+% histogram(dx_diff(:,2))
+%  
+return
 
 
-function dx = og_deriv_function(t,x,u_fun,fun_name)
-
-    % control function
-    u = u_fun(t);
-    
-
-    switch fun_name
-
-        case 'vanderpol'
-            
-            % extract
-            x1 = x(1); x2 = x(2);
-
-            % calculate derivative
-            dx = [x2;-x1 + x2 - x1^2*x2 + u];
-
-        case 'math1'
-            
-            % extract
-            x1 = x(1); x2 = x(2);
-
-            % calculate state derivative
-            a = 0.7137;b = 0.3929;
-            dx = [-a*x1 + b*x2^2;b*x1 - 2*a^2*x2 - x1^2 + u];
-
-        case 'math2'
-            
-            % extract
-            x1 = x(1);x2 = x(2);
-
-            % calculate state derivative
-            a = -0.5204;b = 0.4926;
-            dx = [-0.84*x1 - a*x2 -b*x1*x2; 0.54*x1 + a*x2 + b*x1*x2 + u];
-
-    end
-
-
-end

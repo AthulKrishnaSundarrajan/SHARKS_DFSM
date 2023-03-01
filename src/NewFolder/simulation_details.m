@@ -17,7 +17,7 @@ function sim_details =  simulation_details(simulation_files,reqd_states,reqd_con
     % initialize struct to store details
     sim_details = cell(nsim,1);
 
-    for isim = 1:nsim
+    parfor isim = 1:nsim
         
         % name of the file
         iname = simulation_files{isim};
@@ -43,32 +43,14 @@ function sim_details =  simulation_details(simulation_files,reqd_states,reqd_con
         sim_detail.ncontrols = ncontrols;
         sim_detail.ninputs = ninputs;
         sim_detail.noutputs = noutputs;
+        sim_detail.fun_name = 'FOWT';
+        sim_detail.dx_act = [];
 
         sim_details{isim} = sim_detail;
 
     end
     
     % convert a cell to struct
-    sim_details = cell2struct(sim_details,nsim);
-
-end
-
-function sim_details = cell2struct(sim_details_cell,nsim)
-
-% get length
-sim_details(nsim) = struct();
-
-% loop through
-for i = 1:nsim
-    
-    % initialize
-    sim_details(i).time = [];sim_details(i).states = [];sim_details(i).controls = [];
-    sim_details(i).state_names = [];sim_details(i).control_names = [];sim_details(i).state_derivatives = [];
-    sim_details(i).nstates = [];sim_details(i).ncontrols = [];sim_details(i).ninputs = [];sim_details(i).noutputs = [];
-    
-    % assign
-    sim_details(i) = sim_details_cell{i};
-
-end
+    sim_details = cell2struct_dfsm(sim_details,nsim);
 
 end
