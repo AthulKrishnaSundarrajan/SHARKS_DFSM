@@ -1,14 +1,36 @@
-function sim_details = run_simulation(t0,tf,nt,nsamples,umin,umax,fun_name)
+function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name)
 
     % generate time
     time = linspace(t0,tf,nt);
 
     % generate samples
-    state_names = {'x1','x2'};
-    control_names = {'u'};
+    switch fun_name
+
+        case 'vanderpol'
+            state_names = {'x1','x2'};
+            control_names = {'u'};
+            nx = 2;
+
+            umin = -5; umax = 5;
+
+        case 'math2'
+            state_names = {'x1','x2'};
+            control_names = {'u'};
+            nx = 2;
+
+            umin = -5; umax = 5;
+
+        case 'two-link-robot'
+            state_names = {'x1','x2','x3','x4'};
+            control_names = {'u1','u2'};
+            nx = 4;
+
+            umin = [-1,-1];umax = [1,1];
+
+    end
     
     % generate starting points
-    nY0 = 2 + 2*rand(2,nsamples);
+    nY0 = 2 + 2*rand(nx,nsamples);
     
     % generate control samples
     u_samples = cell(nsamples,1);
@@ -17,7 +39,7 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,umin,umax,fun_name)
         u_sample = lhsdesign_modified(nt,umin,umax);
     
         % create function
-        u_pp = spline(time,u_sample);
+        u_pp = spline(time,u_sample');
         u_samples{i} = @(t) ppval(u_pp,t);
     
     
@@ -39,6 +61,10 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,umin,umax,fun_name)
     
         % evaluate control
         U = u_fun(T);
+        
+        if strcmpi(fun_name,'two-link-robot')
+            U = U';
+        end
     
         % store
         sim_detail.time = T;
@@ -54,7 +80,7 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,umin,umax,fun_name)
     
         
         % evaluate actual derivatives and store them
-        dx_act = zeros(nt,2);
+        dx_act = zeros(nt,nx);
     
         for it = 1:length(T)
             % extract time and state value

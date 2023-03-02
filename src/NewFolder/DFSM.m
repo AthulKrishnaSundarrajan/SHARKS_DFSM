@@ -59,7 +59,9 @@ function dfsm =  DFSM(sim_details,dfsm_options)
                 nonlin = cell(noutputs,1);
             
                 parfor i = 1:noutputs
-                     nonlin{i} = fitrgp(input_sampled,output_sampled(:,i),'KernelFunction','squaredexponential'); % ,'KernelFunction','squaredexponential', 'OptimizeHyperparameters','auto','HyperparameterOptimizationOptions',...
+                     nonlin{i} = fitrgp(input_sampled,output_sampled(:,i),'KernelFunction','squaredexponential' ...
+                         ,'OptimizeHyperparameters','auto','HyperparameterOptimizationOptions',...
+                        struct('AcquisitionFunctionName','expected-improvement-plus','UseParallel',true)); % ,'KernelFunction','squaredexponential', 'OptimizeHyperparameters','auto','HyperparameterOptimizationOptions',...
                         % struct('AcquisitionFunctionName','expected-improvement-plus'), 'Verbose',1,
                 end
 
@@ -132,9 +134,9 @@ function dfsm =  DFSM(sim_details,dfsm_options)
 
                 nonlin = cell(noutputs,1);
             
-                for i = 1:noutputs
+                parfor i = 1:noutputs
                      nonlin{i} = fitrgp(input_error,dx_error_sampled(:,i),'KernelFunction','squaredexponential','OptimizeHyperparameters','auto','HyperparameterOptimizationOptions',...
-                        struct('AcquisitionFunctionName','expected-improvement-plus','UseParallel',true)); 
+                        struct('AcquisitionFunctionName','expected-improvement-plus','UseParallel',0)); 
                      % ,'KernelFunction','squaredexponential', 'OptimizeHyperparameters','auto','HyperparameterOptimizationOptions',...
                         % struct('AcquisitionFunctionName','expected-improvement-plus'), 'Verbose',1,
                 end
@@ -295,48 +297,34 @@ function dfsm = test_dfsm(dfsm,sim_details,ind)
         hf = figure;
         hf.Color = 'w';
         sgtitle('Controls')
+
+        nc = size(controls,2);
         
-        idx = 1;
-        subplot(3,1,idx)
-        plot(time,controls(:,idx),"LineWidth",1)
-        xlabel('Time [s]')
-        ylabel(sim_details(itest).control_names{idx})
-
-        idx = idx+1;
-        subplot(3,1,idx)
-        plot(time,controls(:,idx),"LineWidth",1)
-        xlabel('Time [s]')
-        ylabel(sim_details(itest).control_names{idx})
-
-        idx = idx+1;
-        subplot(3,1,idx)
-        plot(time,controls(:,idx),"LineWidth",1)
-        xlabel('Time [s]')
-        ylabel(sim_details(itest).control_names{idx})
+        for idx = 1:nc
+            subplot(nc,1,idx)
+            plot(time,controls(:,idx),"LineWidth",1)
+            xlabel('Time [s]')
+            ylabel(sim_details(itest).control_names{idx})
+        end
 
         % plot
         hf = figure;
         hf.Color = 'w';
         hold on;
         sgtitle('State derivatives')
-        
-        idx = 1;
-        subplot(2,1,idx)
-        hold on;
-        plot(time,outputs(:,idx),"LineWidth",1)
-        plot(time,state_derivatives(:,idx),"LineWidth",1)
-        xlabel('Time [s]')
-        ylabel(['d',sim_details(itest).state_names{idx}])
-        legend('DFSM','OF')
 
-        idx = idx +1;
-        subplot(2,1,idx)
-        hold on;
-        plot(time,outputs(:,idx),"LineWidth",1)
-        plot(time,state_derivatives(:,idx),"LineWidth",1)
-        xlabel('Time [s]')
-        ylabel(['d',sim_details(itest).state_names{idx}])
-        legend('DFSM','OF')
+        nx = size(states,2);
+        
+        for idx = 1:nx
+            subplot(nx,1,idx)
+            hold on;
+            plot(time,outputs(:,idx),"LineWidth",1)
+            plot(time,state_derivatives(:,idx),"LineWidth",1)
+            xlabel('Time [s]')
+            ylabel(['d',sim_details(itest).state_names{idx}])
+            legend('DFSM','OG')
+        end
+
         
         % plot
         hf = figure;
@@ -344,23 +332,16 @@ function dfsm = test_dfsm(dfsm,sim_details,ind)
         hold on;
         sgtitle('State')
         
-        idx = 1;
-        subplot(2,1,idx)
-        hold on;
-        plot(T,X(:,idx),"LineWidth",1)
-        plot(time,states(:,idx),"LineWidth",1)
-        xlabel('Time [s]')
-        ylabel(sim_details(itest).state_names{idx})
-        legend('DFSM','OF')
+        for idx = 1:nx
+            subplot(nx,1,idx)
+            hold on;
+            plot(T,X(:,idx),"LineWidth",1)
+            plot(time,states(:,idx),"LineWidth",1)
+            xlabel('Time [s]')
+            ylabel(sim_details(itest).state_names{idx})
+            legend('DFSM','OG')
+        end
 
-        idx = idx +1;
-        subplot(2,1,idx)
-        hold on;
-        plot(T,X(:,idx),"LineWidth",1)
-        plot(time,states(:,idx),"LineWidth",1)
-        xlabel('Time [s]')
-        ylabel(sim_details(itest).state_names{idx})
-        legend('DFSM','OF')
 
     end
 
