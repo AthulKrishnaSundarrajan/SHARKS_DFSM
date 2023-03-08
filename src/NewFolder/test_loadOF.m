@@ -47,32 +47,35 @@ filter_args.filt_controls_tf = [1,0,0];
 % filter flag
 filter_flag = true;
 
+reqd_outputs = {'TwrBsFxt','TwrBsMxt'};
+
 % time
 tmin = 0;
 tmax = [];
+add_dx2 = true;
 
 % extract
-sim_details = simulation_details(sim_files,reqd_states,reqd_controls,filter_flag,filter_args,tmin,tmax);
+sim_details = simulation_details(sim_files,reqd_states,reqd_controls,reqd_outputs,filter_flag,filter_args,add_dx2,tmin,tmax);
 
 
-split = [0.9,0.1];
+split = [0.4,0.6];
 
 
 % dfsm options
 dfsm_options.ltype = 'LTI';
-dfsm_options.ntype = 'NN';
-dfsm_options.lsamples = nan;
+dfsm_options.ntype = 'GPR';
+dfsm_options.lsamples = 500;
 dfsm_options.nsamples = nan;
 dfsm_options.sampling_type = 'KM';
 dfsm_options.train_test_split = split;
-
+dfsm_options.scale_flag = 0;
 
 dfsm = DFSM(sim_details,dfsm_options);
 
 lm = dfsm.lin;
 lm = lm';
 
-x = lm(1:2,1:2);
+x = lm(1:4,1:4);
 
 
 return

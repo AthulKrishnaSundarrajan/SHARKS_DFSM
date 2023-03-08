@@ -6,7 +6,7 @@ rng('default')
 % define parameters
 t0 = 0; tf = 3;
 
-nt = 200; nsamples = 10;
+nt = 200; nsamples = 50;
 fun_name = 'two-link-robot';
 
 % run simulation and get results
@@ -17,34 +17,23 @@ split = [0.9,0.1];
 % dfsm options
 dfsm_options.ltype = 'LTI';
 dfsm_options.ntype = 'NN';
-dfsm_options.lsamples = nan;
-dfsm_options.nsamples = 3000;
+dfsm_options.lsamples = 1500;
+dfsm_options.nsamples = 500;
 dfsm_options.sampling_type = 'KM';
 dfsm_options.train_test_split = split;
+dfsm_options.scale_flag = ~true;
 
 
 dfsm = DFSM(sim_details,dfsm_options);
 
+nstates = sim_details(1).nstates;
+lm = dfsm.lin;
 
-% 
-% 
-% % evaluate the difference between actual and polynomial approximate
-% dx_act = vertcat(dXcell_act{:});
-% dx_poly = vertcat(dXcell_poly{:});
-% dx_diff = dx_act-dx_poly;
-% 
-% % plot 
-% nplot = 5;
-% hf = figure; hf.Color = 'w';
-% hold on;
-% plot(Tcell{nplot},dXcell_act{nplot},'k','linewidth',1)
-% plot(Tcell{nplot},dXcell_poly{nplot},'r--','linewidth',1)
-% 
-% % histogram
-% hf = figure;hf.Color = 'w';
-% hold on;
-% histogram(dx_diff(:,1))
-% histogram(dx_diff(:,2))
+lm = lm';
+x = lm(1:nstates,1:nstates);
+
+eig(x)
+
 %  
 return
 

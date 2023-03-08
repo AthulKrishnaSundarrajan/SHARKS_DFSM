@@ -11,7 +11,7 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name)
             control_names = {'u'};
             nx = 2;
 
-            umin = -5; umax = 5;
+            umin = -0.3; umax = 1;
 
         case 'math2'
             state_names = {'x1','x2'};
@@ -50,6 +50,10 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name)
     
     % define solution options
     options = odeset('RelTol',1e-10,'AbsTol',1e-10);
+
+    hf = figure;
+     hf.Color = 'w';
+     hold on;
     
     % loop through and evaluate high fidelity function
     for isamples = 1:nsamples
@@ -58,6 +62,7 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name)
         
         % run simulation
         [T,X] = ode45(@(t,y)og_deriv_function(t,y,u_fun,fun_name),[t0,tf],nY0(:,isamples),options);
+
     
         % evaluate control
         U = u_fun(T);
@@ -72,10 +77,13 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name)
         sim_detail.controls = U;
         sim_detail.state_names = state_names;
         sim_detail.control_names = control_names;
+        sim_detail.output_names = [];
+        sim_detail.outputs = [];
         sim_detail.nstates = length(state_names);
         sim_detail.ncontrols = length(control_names);
         sim_detail.ninputs = length(state_names) + length(control_names);
-        sim_detail.noutputs = length(state_names);
+        sim_detail.nderiv = length(state_names);
+        sim_detail.noutputs = [];
         sim_detail.fun_name = fun_name;
     
         

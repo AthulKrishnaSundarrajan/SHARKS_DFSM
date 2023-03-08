@@ -1,6 +1,6 @@
 % function to load openfast simulation
 
-function sim_detail = load_openfast_sim(sim_name,reqd_states,reqd_controls,tmin,tmax)
+function sim_detail = load_openfast_sim(sim_name,reqd_states,reqd_controls,reqd_outputs,tmin,tmax)
 
     % find type of binary file
     suffix = sim_name(end-4:end);
@@ -42,6 +42,10 @@ function sim_detail = load_openfast_sim(sim_name,reqd_states,reqd_controls,tmin,
         state_ind(i) = find(contains(ChanName,reqd_states{i}));
     end
 
+    for i = 1:length(reqd_outputs)
+        output_ind(i) = find(contains(ChanName,reqd_outputs{i}));
+    end
+
     % extract control index
     gt_flag = false(length(reqd_controls),1);
     for i = 1:length(reqd_controls)
@@ -55,6 +59,8 @@ function sim_detail = load_openfast_sim(sim_name,reqd_states,reqd_controls,tmin,
     % extract channels
     states = Channels(t_ind,state_ind);
     controls = Channels(t_ind,control_ind);
+    outputs = Channels(t_ind,output_ind);
+    outputs = outputs./[1000,10000];
     controls(:,gt_flag) = controls(:,gt_flag)/1000;
 
     % add to struct
@@ -63,6 +69,8 @@ function sim_detail = load_openfast_sim(sim_name,reqd_states,reqd_controls,tmin,
     sim_detail.controls = controls;
     sim_detail.state_names = reqd_states;
     sim_detail.control_names = reqd_controls;
+    sim_detail.outputs = outputs;
+    sim_detail.output_names = reqd_outputs;
 
 
 end
