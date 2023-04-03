@@ -50,7 +50,19 @@ function dx = og_deriv_function(t,x,u_fun,fun_name)
                 x2-x1;
                 x1];
 
-        
+        case 'transfer-min-fuel'
+
+            % extract
+            x1 = x(1);x2 = x(2);x3 = x(3);x4 = x(4);
+
+            % controls
+            u1 = u(1);u2 = u(2);
+
+            % calculate state derivatives
+            dx = [x3;
+                  x4/x1;
+                  x4^2/x1-1/x1^2+u1;
+                  -x4*x3/x1+u2];
 
     end
 

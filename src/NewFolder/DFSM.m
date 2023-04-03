@@ -4,7 +4,6 @@ function dfsm =  DFSM(sim_details,dfsm_options)
     % extract dfsm options
     ltype = dfsm_options.ltype;
     ntype = dfsm_options.ntype;
-    lsamples = dfsm_options.lsamples;
     nsamples = dfsm_options.nsamples;
     sampling_type = dfsm_options.sampling_type;
     train_test_split = dfsm_options.train_test_split;
@@ -50,38 +49,39 @@ function dfsm =  DFSM(sim_details,dfsm_options)
         % scale
         if scale_flag
             input_max = max(inputs,[],1);
-            output_max = max(state_dx,[],1);
+            dx_max = max(state_dx,[],1);
         else
             input_max = ones(1,ninputs);
-            output_max = ones(1,noutputs);
+            dx_max = ones(1,nderiv);
         end
 
         input_sampled = input_sampled./input_max;
 
-        state_dx_sampled = state_dx_sampled./output_max;
+        state_dx_sampled = state_dx_sampled./dx_max;
 
        
         dfsm.scaler_input = input_max;
-        dfsm.scaler_output = output_max;
+        dfsm.scaler_output = dx_max;
         
         % error
-        error_ind = true(noutputs,1);
-        dfsm.error_ind = error_ind;
+        error_ind = true(nderiv,1);
+        dfsm.deriv.error_ind = error_ind;
 
         % check the options
         tic
-        nonlin = construct_nonlinear_SM(input_sampled,state_dx_sampled,ntype,error_ind,noutputs);
+        nonlin = construct_nonlinear_SM(input_sampled,state_dx_sampled,ntype,error_ind,nderiv);
         dfsm.nonlin_construct = toc;
 
         % store
-        dfsm.nonlin = nonlin;
+        dfsm.deriv.AB = [];
+        dfsm.deriv.nonlin = nonlin;
         dfsm.ntype = ntype;
     
     else 
 
         % sample the inputs and outputs
         tic
-        [input_sampled,state_dx_sampled,output_sampled,inputs,state_dx,outputs] = sample_data(train_samples,sampling_type,lsamples);
+        [input_sampled,state_dx_sampled,output_sampled,inputs,state_dx,outputs] = sample_data(train_samples,sampling_type,nsamples);
         dfsm.lin_sample = toc;
 
         % scale
@@ -122,24 +122,26 @@ function dfsm =  DFSM(sim_details,dfsm_options)
 
                 if ~isempty(outputs)
                     output_error = output_sampled - input_sampled*CD;
-
                 end
            
 
             case 'LPV'
-
+                
+                % number of states
                 nstates = train_samples(1).nstates;
                 
                 % extract wind speed
-                wind = inputs(:,nstates+1);
+                wind = inputs(:,1);
                 wmin = min(wind)+1;
                 wmax = max(wind)-1;
-
+                
+                % construct the LPV model
                 AB = construct_LPV(inputs,state_dx,wind,wmin,wmax);
                 
-
+                % evaluate the error between original model and DFSM model
                 dx_error = evaluate_LPV(AB,wmax,wmin,nstates,input_sampled,nderiv);
-
+                
+                % store values
                 dfsm.deriv.lin = AB;
                 dfsm.lpv.wmin = wmin;
                 dfsm.lpv.wmax = wmax;
@@ -149,13 +151,11 @@ function dfsm =  DFSM(sim_details,dfsm_options)
         dfsm.lin_construct = toc;
 
         % store linear model
-        
         dfsm.ltype = ltype;
         dfsm.scaler_input = input_max;
         dfsm.scaler_output = dx_max;
 
         % evaluate the error between linear model and nonlinear model
-
         error_mean = mean(dx_error,1);
 
         % check mean value of error. if error <1e-5, then do not construct
@@ -164,18 +164,20 @@ function dfsm =  DFSM(sim_details,dfsm_options)
         dx_error = dx_error(:,error_ind);
         dfsm.deriv.error_ind = error_ind;
 
-        % corrective function
+        % construct corrective function
         tic;
         nonlin = construct_nonlinear_SM(input_sampled,dx_error,ntype,error_ind,nderiv);
         dfsm.nonlin_construct = toc;
-
+        
+        % construct nonlinear corrective function for the outputs (if any)
         if ~isempty(outputs)
             op.error_ind = true(noutputs,1);
             op.nonlin = construct_nonlinear_SM(input_sampled,output_error,ntype,true(noutputs,1),noutputs);
         else
             op.nonlin = [];
         end
-
+        
+        % store
         dfsm.deriv.nonlin = nonlin;
         dfsm.op = op;
         dfsm.ntype = ntype;
@@ -183,12 +185,14 @@ function dfsm =  DFSM(sim_details,dfsm_options)
     end
 
 
-    ind = randsample(length(train_samples),2);
+    ind = randsample(length(train_samples),1);
     dfsm = test_dfsm(dfsm,train_samples,ind);
 
     % test and plot the predictions
-    dfsm = test_dfsm(dfsm,test_samples,1:length(test_samples));
-
+    if ~isempty(test_samples)
+        ind = randsample(length(test_samples),2);
+        dfsm = test_dfsm(dfsm,test_samples,ind);
+    end
 
 
 end
@@ -197,18 +201,28 @@ function nonlin = construct_nonlinear_SM(input,output,ntype,error_ind,noutputs)
 
 % function to construct nonlinear surrogate model
 
+% initialize
+nonlin = cell(noutputs,1);
+
 switch ntype
 
         case 'RBF'
             % mean square error goal
             mse_goal = 0.001; 
 
-            % train a neural network
-            nonlin = newrb(input',output',mse_goal);
+            ind = 1;
+            for i = 1:noutputs
+                if error_ind(i)
+                     nonlin{i} = newrb(input',(output(:,ind))',mse_goal);
+                     ind = ind+1;
+                end
+            
+            end
+
+
 
         case 'GPR'
 
-            nonlin = cell(noutputs,1);
             ind = 1;
             for i = 1:noutputs
                 if error_ind(i)
@@ -305,30 +319,30 @@ end
 
 function [inputs_cell,state_dx_cell,outputs_cell] = struct2cell_dfsm(sim_details)
 
-% get the number of samples
-nsamples = length(sim_details);
-
-inputs_cell = cell(nsamples,1);
-state_dx_cell = cell(nsamples,1);
-outputs_cell = cell(nsamples,1);
-
-% loop through and extract cell
-for isample = 1:nsamples
-
-    controls = sim_details(isample).controls;
-    states = sim_details(isample).states;
-    state_derivatives = sim_details(isample).state_derivatives;
-    outputs = sim_details(isample).outputs;
-
-    % combine
-    inputs = [states,controls];
+    % get the number of samples
+    nsamples = length(sim_details);
     
-    % store
-    inputs_cell{isample} = inputs;
-    state_dx_cell{isample} = state_derivatives;
-    outputs_cell{isample} = outputs;
-
-end
+    inputs_cell = cell(nsamples,1);
+    state_dx_cell = cell(nsamples,1);
+    outputs_cell = cell(nsamples,1);
+    
+    % loop through and extract cell
+    for isample = 1:nsamples
+    
+        controls = sim_details(isample).controls;
+        states = sim_details(isample).states;
+        state_derivatives = sim_details(isample).state_derivatives;
+        outputs = sim_details(isample).outputs;
+    
+        % combine
+        inputs = [controls,states];
+        
+        % store
+        inputs_cell{isample} = inputs;
+        state_dx_cell{isample} = state_derivatives;
+        outputs_cell{isample} = outputs;
+    
+    end
 end
 
 function dfsm = test_dfsm(dfsm,sim_details,ind)
@@ -350,9 +364,9 @@ function dfsm = test_dfsm(dfsm,sim_details,ind)
         state_derivatives = sim_details(itest).state_derivatives;
         outputs = sim_details(itest).outputs;
         noutputs = sim_details(itest).noutputs;
-        nderiv = sim_details(itest).nderiv;
 
-        u_pp =spline(time,controls');
+        % construct interpolating function for inputs
+        u_pp = spline(time,controls');
         u_fun = @(t) ppval(u_pp,t);
         
         x0 = states(1,:)';
@@ -360,23 +374,30 @@ function dfsm = test_dfsm(dfsm,sim_details,ind)
         % define solution options
         options = odeset('RelTol',1e-6,'AbsTol',1e-6);
         
+        % run a simulation using dfsm
         tic
         [T,X] = ode45(@(t,x) ode_dfsm(t,x,u_fun,dfsm),[time(1),time(end)],x0,options);
         time_simulation(itest) = toc;
-
-        inputs = [states,controls];
         
+        % stack states and controls
+        inputs = [controls,states];
+        
+        % evaluate dfsm
         tic
-        state_dx = evaluate_dfsm(inputs,dfsm.ltype,dfsm.ntype,dfsm.deriv.AB,dfsm.deriv.nonlin,dfsm.nderiv,dfsm.deriv.error_ind,dfsm.scaler_input,dfsm.scaler_output);
+        state_dx = evaluate_dfsm(inputs,dfsm,'deriv');
         time_eval(itest) = toc;
-
+        
+        % transpose
         state_dx = state_dx';
         
+        % evaluate outputs if any
         if ~isempty(outputs)
-            outputs_dfsm = evaluate_dfsm(inputs,dfsm.ltype,dfsm.ntype,dfsm.op.CD,dfsm.op.nonlin,dfsm.noutputs,dfsm.op.error_ind,dfsm.scaler_input,dfsm.scaler_output);
+            outputs_dfsm = evaluate_dfsm(inputs,dfsm,'output');
             outputs_dfsm = outputs_dfsm';
         end
-
+        
+        %% plot
+        %------------------------------------------------------------------
         % plot inputs
         hf = figure;
         hf.Color = 'w';
@@ -390,8 +411,9 @@ function dfsm = test_dfsm(dfsm,sim_details,ind)
             xlabel('Time [s]')
             ylabel(sim_details(itest).control_names{idx})
         end
-
-        % plot
+        
+        %------------------------------------------------------------------
+        % plot state derivatives
         hf = figure;
         hf.Color = 'w';
         hold on;
@@ -411,9 +433,8 @@ function dfsm = test_dfsm(dfsm,sim_details,ind)
             legend('DFSM','OG')
         end
 
-        
-        
-        % plot
+        %------------------------------------------------------------------
+        % plot states
         hf = figure;
         hf.Color = 'w';
         hold on;
@@ -428,7 +449,9 @@ function dfsm = test_dfsm(dfsm,sim_details,ind)
             ylabel(sim_details(itest).state_names{idx})
             legend('DFSM','OG')
         end
-
+        
+        %------------------------------------------------------------------
+        % plot outputs if any
         if ~isempty(outputs)
 
             % plot
@@ -450,7 +473,7 @@ function dfsm = test_dfsm(dfsm,sim_details,ind)
 
         end
 
-
+        %------------------------------------------------------------------
     end
 
     dfsm.test_simulation = mean(time_simulation);
@@ -458,124 +481,6 @@ function dfsm = test_dfsm(dfsm,sim_details,ind)
 
 end
 
-function dx = ode_dfsm(t,x,u_fun,dfsm)
-    
-    % controls
-    u = u_fun(t);
-    u = u(:);
-
-    % combine
-    inputs = [x',u'];
-    
-    dx = evaluate_dfsm(inputs,dfsm.ltype,dfsm.ntype,dfsm.deriv.AB,dfsm.deriv.nonlin,dfsm.nderiv,dfsm.deriv.error_ind,dfsm.scaler_input,dfsm.scaler_output);
-
-end
-
-function[input_sampled,state_dx_sampled,output_sampled] = perform_KM(inputs,state_dx,outputs,n_samples)
-
-    % get clusters
-    [idx,input_sampled] = kmeans(inputs,n_samples,'MaxIter',1000);
-
-    state_dx_sampled = zeros(n_samples,size(state_dx,2));
-    output_sampled = zeros(n_samples,size(outputs,2));
-
-    for icluster = 1:n_samples
-        
-        % find the index corresponding to given cluster
-        ind_cluster = (idx == icluster);
-        
-        % find the state derivative values for those clusters
-        state_dx_cluster = state_dx(ind_cluster,:);
-
-        if ~isempty(outputs)
-         output_cluster = outputs(ind_cluster,:);
-
-         output_sampled(icluster,:) = mean(output_cluster,1);
-        end
-        
-        % the state derivative value at the cluster centroid is the
-        % mean
-        state_dx_sampled(icluster,:) = mean(state_dx_cluster,1);
-
-    end
-
-end
-
-function dx = evaluate_dfsm(inputs,ltype,ntype,lin,nonlin,noutputs,error_ind,scaler_input,scaler_output)
-
-    % extract dfsm 
-%     ltype = dfsm.ltype;ntype = dfsm.ntype;
-%     nonlin = dfsm.deriv.nonlin;
-
-    % number of points
-    nt = size(inputs,1);
-
-%     noutputs = dfsm.noutputs;
-%     nderiv = dfsm.nderiv;
-%     error_ind = dfsm.error_ind;
-%     scaler_input = dfsm.scaler_input;
-%     scaler_output = dfsm.scaler_output;
-
-    inputs = inputs./scaler_input;
-
-    % initialize 
-    if isempty(ltype)
-
-        dx_lin = zeros(nt,nderiv);
-        
-    else
-
-        switch ltype
-
-            case 'LTI'
-
-                % evaluate linear part of the dfsm
-                dx_lin = inputs*lin;
-
-            case 'LPV'
-
-                dx_lin = evaluate_LPV(dfsm.lpv.lin,dfsm.lpv.wmax,dfsm.lpv.wmin,dfsm.lpv.nstates,inputs,noutputs);
-
-        end
-    end
-
-    % initialize
-    dx_nonlin = zeros(noutputs,nt);
-
-    switch ntype
-
-
-        case 'RBF'
- 
-            dx_nonlin(error_ind,:) = nonlin(inputs');
-
-        case 'GPR'
-
-            dx_nonlin = zeros(nt,noutputs);
-
-            for i = 1:noutputs
-
-                if error_ind(i)
-                    gpri = nonlin{i};
-    
-                    dx_nonlin(:,i) = predict(gpri,inputs);
-                end
-
-            end
-
-            dx_nonlin = dx_nonlin';
-
-        case 'NN'
-
-            dx_nonlin(error_ind,:) = nonlin(inputs');
-
-    end
-
-    dx = dx_lin' + dx_nonlin;
-    %dx = dx.*scaler_output';
-
-
-end
 
 function lin = construct_LPV(inputs,outputs,wind,wmin,wmax)
 
@@ -600,62 +505,34 @@ function lin = construct_LPV(inputs,outputs,wind,wmin,wmax)
 
     AB_interp = zeros(50,ninputs,noutputs);
 
-for k = 1:length(W)
-
-    m = W(k);
-
-    if m+offset > maxW
-        offset = maxW - m;
-    end
-
-    if m-offset < minW
-        offset = m-minW;
-    end
-
-    % find all values within small range
-    Iw = (m+offset >= wind) & (m-offset <= wind);
-    IW_(k) = sum(Iw);
-
-    % extract
-    input_ = inputs(Iw,:);
-    output_ = outputs(Iw,:);
-
-    AB_interp(k,:,:) = linsolve(input_,output_);
-
-end
-
-lin_pp = interp1(W,AB_interp,'nearest','pp');
-lin = @(w) ppval(lin_pp,w);
-
-
-end
-
-function dx = evaluate_LPV(lin,wmax,wmin,nstates,inputs,noutputs)
-
-% function to evaluate the LPV model for a given set of inputs
-% works for both direct evaluation and through ode
-
-% get the size of inputs
-nt = size(inputs,1);
-
-% initialize derivative
-dx = zeros(nt,noutputs);
-
-% go through the inputs and evaluate lpv model
-for i = 1:nt
-
-    % extract wind
-    w = inputs(i,nstates+1);
+    for k = 1:length(W)
     
-    % check value to see if the wind speed is between limits
-    if w > wmax
-        w = wmax;
-    elseif w<wmin
-        w = wmin;
+        m = W(k);
+    
+        if m+offset > maxW
+            offset = maxW - m;
+        end
+    
+        if m-offset < minW
+            offset = m-minW;
+        end
+    
+        % find all values within small range
+        Iw = (m+offset >= wind) & (m-offset <= wind);
+        IW_(k) = sum(Iw);
+    
+        % extract
+        input_ = inputs(Iw,:);
+        output_ = outputs(Iw,:);
+    
+        AB_interp(k,:,:) = linsolve(input_,output_);
+    
     end
     
-    % evaluate derivative function
-    dx(i,:) = inputs(i,:)*lin(w);
-end
+    lin_pp = interp1(W,AB_interp,'nearest','pp');
+    lin = @(w) ppval(lin_pp,w);
+
 
 end
+
+

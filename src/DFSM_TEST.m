@@ -14,23 +14,23 @@ tf = 5;
 sig_n = 0.3;
 
 % control (input)
-%U = @(t,p) 5*sin(exp(0.08.*t).*t + p);
+U = @(t,p) 5*sin(exp(0.08.*t).*t + p);
 
-nt = 1000;
-t_ = linspace(t0,tf,nt);
-
-U_ = 2+sin((2*pi).*(1:nt)/40);
-
-U_ = U_ + 0.3.*randn(size(U_));
-
-hf = figure;hf.Color = 'w';
-hold on;
-plot(t_,U_)
-
-U = @(t,p) interp1(t_,U_,t);
+% nt = 1000;
+% t_ = linspace(t0,tf,nt);
+% 
+% U_ = 2+sin((2*pi).*(1:nt)/40);
+% 
+% U_ = U_ + 0.3.*randn(size(U_));
+% 
+% hf = figure;hf.Color = 'w';
+% hold on;
+% plot(t_,U_)
+% 
+% U = @(t,p) interp1(t_,U_,t);
 
 % initial states and phase array
-n = 2;
+n = 20;
 Y0array = -5 + 10*rand(2,n);
 p = pi/2*rand(n,1);
 

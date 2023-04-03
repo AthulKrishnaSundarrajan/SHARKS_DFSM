@@ -12,6 +12,10 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name)
             nx = 2;
 
             umin = -0.3; umax = 1;
+            xmax = [5,5]; xmin = [-5,-5];
+            x0 = [1,0];
+
+            samp_type = 'LHC';
 
         case 'math2'
             state_names = {'x1','x2'};
@@ -26,17 +30,40 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name)
             nx = 4;
 
             umin = [-1,-1];umax = [1,1];
+            xmax = ones(1,nx); xmin = -ones(1,nx);
+            x0 = [0,0,0.5,0];
+            samp_type = 'freq-excite';
+
+        case 'transfer-min-fuel'
+
+            state_names = {'r','t','vr','vt'};
+            control_names = {'ur','ut'};
+            nx = 4;
+
+            umin = -[0.01,0.01]; umax = -umin;
+
+            xmax = ones(1,nx); xmin = -ones(1,nx);
+            x0 = [1,0,0,1];
+            samp_type = 'freq-excite';
+
+
+
 
     end
     
     % generate starting points
-    nY0 = 2 + 2*rand(nx,nsamples);
+    %nY0 = 2.*rand(nx,nsamples); 
+    
+    nY0 = lhsdesign_modified(nsamples,xmin,xmax);nY0 = nY0';
+
+    nY0(:,end) = x0;
     
     % generate control samples
     u_samples = cell(nsamples,1);
     
     for i = 1:nsamples
-        u_sample = lhsdesign_modified(nt,umin,umax);
+        %u_sample = lhsdesign_modified(nt,umin,umax);
+        u_sample = generate_usamples(samp_type,umin,umax,nt,time);
     
         % create function
         u_pp = spline(time,u_sample');
@@ -52,8 +79,10 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name)
     options = odeset('RelTol',1e-10,'AbsTol',1e-10);
 
     hf = figure;
-     hf.Color = 'w';
-     hold on;
+    hf.Color = 'w';
+    hold on;
+    plot(nY0(1,:),nY0(2,:),'o')
+    %xlim([xmin(1),xmax(1)]);ylim([xmin(2),xmax(2)]);
     
     % loop through and evaluate high fidelity function
     for isamples = 1:nsamples
@@ -63,6 +92,8 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name)
         % run simulation
         [T,X] = ode45(@(t,y)og_deriv_function(t,y,u_fun,fun_name),[t0,tf],nY0(:,isamples),options);
 
+        % plot states
+        plot(X(:,1),X(:,2),'.','markersize',5)
     
         % evaluate control
         U = u_fun(T);
@@ -116,5 +147,24 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name)
     
     % convert the cell of structure into a structure array
     sim_details = cell2struct_dfsm(sim_details,nsamples);
+
+end
+
+function u_samples = generate_usamples(sampling_type,umin,umax,nt,time)
+    
+switch sampling_type
+
+    case 'LHC'
+        u_samples = lhsdesign_modified(nt,umin,umax);
+
+    case 'freq-excite'
+        nu = length(umin);
+        u_samples = ones(nt,nu);
+        perturb = 0.*rand(nt,nu);
+
+        u_samples = u_samples.*(sin(exp(0.6.*time').*time')) + perturb;
+
+
+end
 
 end

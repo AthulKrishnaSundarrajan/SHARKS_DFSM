@@ -4,20 +4,19 @@ clc;clear; close all;
 rng('default')
 
 % define parameters
-t0 = 0; tf = 3;
+t0 = 0; tf = 1;
 
 nt = 200; nsamples = 50;
-fun_name = 'two-link-robot';
+fun_name = 'vanderpol';
 
 % run simulation and get results
 sim_details = run_simulation(t0,tf,nt,nsamples,fun_name);
 
-split = [0.9,0.1];
+split = [1,0];
 
 % dfsm options
 dfsm_options.ltype = 'LTI';
-dfsm_options.ntype = 'NN';
-dfsm_options.lsamples = 1500;
+dfsm_options.ntype = 'RBF';
 dfsm_options.nsamples = 500;
 dfsm_options.sampling_type = 'KM';
 dfsm_options.train_test_split = split;
