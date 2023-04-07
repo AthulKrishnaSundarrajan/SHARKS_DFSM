@@ -6,7 +6,7 @@ n.nu = 2; n.ny = 4; %n.np = 1;
 ex_output = @TwoLinkRobot_output; % output function
 ex_plot = @TwoLinkRobot_plot; % plot function
 
-dm_type = 'function';
+dm_type = 'DFSM';
 
 
 switch dm_type
@@ -16,7 +16,7 @@ switch dm_type
         % run simulations and construct DFSM for two-link-robot problem
         
         % define parameters
-        t0 = 0; tf = 5;
+        t0 = 0; tf = 3;
         
         nt = 200; nsamples = 50;
         fun_name = 'two-link-robot';
@@ -28,8 +28,8 @@ switch dm_type
         split = [1,0];
         
         % dfsm options
-        dfsm_options.ltype = '';
-        dfsm_options.ntype = 'RBF';
+        dfsm_options.ltype = 'LTI';
+        dfsm_options.ntype = 'GPR';
         %dfsm_options.lsamples = 1000;
         dfsm_options.nsamples = 500;
         dfsm_options.sampling_type = 'KM';

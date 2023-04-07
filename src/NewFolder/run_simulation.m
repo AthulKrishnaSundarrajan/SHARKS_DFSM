@@ -32,7 +32,7 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name)
             umin = [-1,-1];umax = [1,1];
             xmax = ones(1,nx); xmin = -ones(1,nx);
             x0 = [0,0,0.5,0];
-            samp_type = 'freq-excite';
+            samp_type = 'LHC';
 
         case 'transfer-min-fuel'
 

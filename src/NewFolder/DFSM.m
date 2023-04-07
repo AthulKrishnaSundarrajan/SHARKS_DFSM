@@ -43,7 +43,7 @@ function dfsm =  DFSM(sim_details,dfsm_options)
 
         % sample the inputs and outputs
         tic
-        [input_sampled,state_dx_sampled,output_sampled,inputs,state_dx,outputs] = sample_data(train_samples,sampling_type,nsamples);
+        [input_sampled,dx_sampled,output_sampled,inputs,state_dx,outputs] = sample_data(train_samples,sampling_type,nsamples);
         dfsm.nonlin_sample = toc;
 
         % scale
@@ -57,7 +57,7 @@ function dfsm =  DFSM(sim_details,dfsm_options)
 
         input_sampled = input_sampled./input_max;
 
-        state_dx_sampled = state_dx_sampled./dx_max;
+        dx_sampled = dx_sampled./dx_max;
 
        
         dfsm.scaler_input = input_max;
@@ -69,7 +69,7 @@ function dfsm =  DFSM(sim_details,dfsm_options)
 
         % check the options
         tic
-        nonlin = construct_nonlinear_SM(input_sampled,state_dx_sampled,ntype,error_ind,nderiv);
+        nonlin = construct_nonlinear_SM(input_sampled,dx_sampled,ntype,error_ind,nderiv);
         dfsm.nonlin_construct = toc;
 
         % store
@@ -81,7 +81,7 @@ function dfsm =  DFSM(sim_details,dfsm_options)
 
         % sample the inputs and outputs
         tic
-        [input_sampled,state_dx_sampled,output_sampled,inputs,state_dx,outputs] = sample_data(train_samples,sampling_type,nsamples);
+        [input_sampled,dx_sampled,output_sampled,inputs,state_dx,outputs] = sample_data(train_samples,sampling_type,nsamples);
         dfsm.lin_sample = toc;
 
         % scale
@@ -98,7 +98,7 @@ function dfsm =  DFSM(sim_details,dfsm_options)
         input_sampled = input_sampled./input_max;
 
         state_dx = state_dx./dx_max;
-        state_dx_sampled = state_dx_sampled./dx_max;
+        dx_sampled = dx_sampled./dx_max;
 
         % construct a linear fit
         tic
@@ -118,7 +118,7 @@ function dfsm =  DFSM(sim_details,dfsm_options)
                 dfsm.deriv.AB = AB;
                 op.CD = CD;
 
-                dx_error = state_dx_sampled - (input_sampled)*AB;
+                dx_error = dx_sampled - (input_sampled)*AB;
 
                 if ~isempty(outputs)
                     output_error = output_sampled - input_sampled*CD;
@@ -183,14 +183,18 @@ function dfsm =  DFSM(sim_details,dfsm_options)
         dfsm.ntype = ntype;
     
     end
+    
+    % save input samples
+    dfsm.input_sampled = input_sampled;
+    dfsm.dx_sampled = dx_sampled;
+    dfsm.output_sampled = output_sampled;
 
-
-    ind = randsample(length(train_samples),1);
-    dfsm = test_dfsm(dfsm,train_samples,ind);
+%     ind = randsample(length(train_samples),1);
+%     dfsm = test_dfsm(dfsm,train_samples,ind);
 
     % test and plot the predictions
     if ~isempty(test_samples)
-        ind = randsample(length(test_samples),2);
+        ind = randsample(length(test_samples),1);
         dfsm = test_dfsm(dfsm,test_samples,ind);
     end
 
@@ -372,7 +376,7 @@ function dfsm = test_dfsm(dfsm,sim_details,ind)
         x0 = states(1,:)';
 
         % define solution options
-        options = odeset('RelTol',1e-6,'AbsTol',1e-6);
+        options = odeset('RelTol',1e-9,'AbsTol',1e-9);
         
         % run a simulation using dfsm
         tic
