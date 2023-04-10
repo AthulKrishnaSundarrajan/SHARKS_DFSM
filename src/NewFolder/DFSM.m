@@ -193,10 +193,10 @@ function dfsm =  DFSM(sim_details,dfsm_options)
 %     dfsm = test_dfsm(dfsm,train_samples,ind);
 
     % test and plot the predictions
-    if ~isempty(test_samples)
-        ind = randsample(length(test_samples),1);
-        dfsm = test_dfsm(dfsm,test_samples,ind);
-    end
+%     if ~isempty(test_samples)
+%         ind = randsample(length(test_samples),1);
+%         dfsm = test_dfsm(dfsm,test_samples,ind);
+%     end
 
 
 end
@@ -347,142 +347,6 @@ function [inputs_cell,state_dx_cell,outputs_cell] = struct2cell_dfsm(sim_details
         outputs_cell{isample} = outputs;
     
     end
-end
-
-function dfsm = test_dfsm(dfsm,sim_details,ind)
-
-    % function to test the constructed dfsm
-    ntest = length(ind);
-
-    time_simulation = zeros(ntest,1);
-    time_eval = zeros(ntest,1);
-    
-
-
-    for itest = 1:ntest
-        
-        % extract
-        controls = sim_details(itest).controls;
-        states = sim_details(itest).states;
-        time = sim_details(itest).time;
-        state_derivatives = sim_details(itest).state_derivatives;
-        outputs = sim_details(itest).outputs;
-        noutputs = sim_details(itest).noutputs;
-
-        % construct interpolating function for inputs
-        u_pp = spline(time,controls');
-        u_fun = @(t) ppval(u_pp,t);
-        
-        x0 = states(1,:)';
-
-        % define solution options
-        options = odeset('RelTol',1e-9,'AbsTol',1e-9);
-        
-        % run a simulation using dfsm
-        tic
-        [T,X] = ode45(@(t,x) ode_dfsm(t,x,u_fun,dfsm),[time(1),time(end)],x0,options);
-        time_simulation(itest) = toc;
-        
-        % stack states and controls
-        inputs = [controls,states];
-        
-        % evaluate dfsm
-        tic
-        state_dx = evaluate_dfsm(inputs,dfsm,'deriv');
-        time_eval(itest) = toc;
-        
-        % transpose
-        state_dx = state_dx';
-        
-        % evaluate outputs if any
-        if ~isempty(outputs)
-            outputs_dfsm = evaluate_dfsm(inputs,dfsm,'output');
-            outputs_dfsm = outputs_dfsm';
-        end
-        
-        %% plot
-        %------------------------------------------------------------------
-        % plot inputs
-        hf = figure;
-        hf.Color = 'w';
-        sgtitle('Controls')
-
-        nc = size(controls,2);
-        
-        for idx = 1:nc
-            subplot(nc,1,idx)
-            plot(time,controls(:,idx),"LineWidth",1)
-            xlabel('Time [s]')
-            ylabel(sim_details(itest).control_names{idx})
-        end
-        
-        %------------------------------------------------------------------
-        % plot state derivatives
-        hf = figure;
-        hf.Color = 'w';
-        hold on;
-        sgtitle('State derivatives')
-
-        nx = size(states,2);
-
-        for idx = 1:nx
-            subplot(nx,1,idx)
-            hold on;
-            plot(time,state_dx (:,idx),"LineWidth",1)       
-            plot(time,state_derivatives(:,idx),"LineWidth",1)
-
-
-            xlabel('Time [s]')
-            ylabel(['d',sim_details(itest).state_names{idx}])
-            legend('DFSM','OG')
-        end
-
-        %------------------------------------------------------------------
-        % plot states
-        hf = figure;
-        hf.Color = 'w';
-        hold on;
-        sgtitle('State')
-        
-        for idx = 1:nx
-            subplot(nx,1,idx)
-            hold on;
-            plot(T,X(:,idx),"LineWidth",1)
-            plot(time,states(:,idx),"LineWidth",1)
-            xlabel('Time [s]')
-            ylabel(sim_details(itest).state_names{idx})
-            legend('DFSM','OG')
-        end
-        
-        %------------------------------------------------------------------
-        % plot outputs if any
-        if ~isempty(outputs)
-
-            % plot
-            hf = figure;
-            hf.Color = 'w';
-            hold on;
-            sgtitle('Outputs')
-            
-            
-            for idx = 1:noutputs
-                subplot(noutputs,1,idx)
-                hold on;
-                plot(time,outputs_dfsm(:,idx),"LineWidth",1)
-                plot(time,outputs(:,idx),"LineWidth",1)
-                xlabel('Time [s]')
-                ylabel(sim_details(itest).output_names{idx})
-                legend('DFSM','OG')
-            end
-
-        end
-
-        %------------------------------------------------------------------
-    end
-
-    dfsm.test_simulation = mean(time_simulation);
-    dfsm.test_eval = mean(time_eval);
-
 end
 
 
