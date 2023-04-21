@@ -18,18 +18,18 @@ switch dm_type
         % define parameters
         t0 = 0; tf = 3;
         
-        nt = 200; nsamples = 50;
+        nt = 200; nsamples = 100;
         fun_name = 'two-link-robot';
         
         % run simulation and get results
-        sim_details = run_simulation(t0,tf,nt,nsamples,fun_name);
+        sim_details = run_simulation(t0,tf,nt,nsamples,fun_name,1);
         
         % train-test split
         split = [1,0];
         
         % dfsm options
         dfsm_options.ltype = 'LTI';
-        dfsm_options.ntype = 'GPR';
+        dfsm_options.ntype = 'RBF';
         %dfsm_options.lsamples = 1000;
         dfsm_options.nsamples = 500;
         dfsm_options.sampling_type = 'KM';

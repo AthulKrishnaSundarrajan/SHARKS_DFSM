@@ -4,7 +4,7 @@ clc; clear; close all;
 
 root_path = fileparts(which('INSTALL_DFSM'));
 data_path = fullfile(root_path,'data');
-fol_name = '1p1_samples_belowrated';
+fol_name = 'DFSM_rated_10';
 sim_path = fullfile(data_path,fol_name);
 
 % file names
@@ -63,7 +63,7 @@ split = [1,0];
 
 % dfsm options
 dfsm_options.ltype = 'LTI';
-dfsm_options.ntype = 'RBF';
+dfsm_options.ntype = 'GPR';
 dfsm_options.lsamples = nan;
 dfsm_options.nsamples = 500;
 dfsm_options.sampling_type = 'KM';
@@ -104,7 +104,7 @@ opts.solver.function = 'ipfmincon';
 opts.method.form = 'nonlinearprogram';
 opts.method.derivatives = 'real-central';
 opts.solver.maxiters = 250;
-opts.solver.tolerance = 1e-5;
+opts.solver.tolerance = 1e-8;
 
 n.ny = nx; % number of states
 n.nu = nu; % number of inputs
@@ -113,50 +113,40 @@ r1 = 1e-8;
 w1 = 1e-7; w2 = 1e-8;
 
 % objective function
-lx = 1;
-% L(lx).left = 1;
-% L(lx).right = 1;
-% L(lx).matrix = diag([0,r1,0]);
-% lx = lx+1;
-% 
-% L(lx).left = 1;
-% L(lx).right = 2;
-% Lmat = zeros(nu,nx); Lmat(2,2) = 1;
-% L(lx).matrix = -Lmat;
-% lx = lx+1;
-%
-
-% objective function
 
 % min (19.8-tg)^2
 lx = 1;
-% L(lx).left = 0;
-% L(lx).right = 0;
-% L(lx).matrix = 19.8^2;
+L(lx).left = 0;
+L(lx).right = 0;
+L(lx).matrix = 19.8^2;
 % 
-% lx = lx+1;
+lx = lx+1;
 L(lx).left = 1;
 L(lx).right = 1;
-L(lx).matrix = diag([0,1e-8,1e-0]);
-
-% lx = lx+1;
-% L(lx).left = 0;
-% L(lx).right = 1;
-% L(lx).matrix = [0,-2*19.8,0];
+L(lx).matrix = diag([0,1,1e-5]);
 
 lx = lx+1;
-%
+L(lx).left = 0;
+L(lx).right = 1;
+L(lx).matrix = [0,-2*19.8,0];
+
+lx = lx+1;
 L(lx).left = 1;
 L(lx).right = 2;
 Lmat = zeros(nu,nx); Lmat(2,2) = 1;
 L(lx).matrix = -Lmat;
-lx = lx+1;
+
+% lx = lx+1;
+% L(lx).left = 2;
+% L(lx).right = 2;
+% L(lx).matrix = diag([1e-0,0,0,0]);
+
 
 
 % extract wind speed and construct interpolating function
-controls = sim_details(2).controls;
-states = sim_details(2).states;
-time = sim_details(2).time;
+controls = sim_details(1).controls;
+states = sim_details(1).states;
+time = sim_details(1).time;
 
 
 x0 = states(1,:);
@@ -193,14 +183,6 @@ UB(ix).matrix = [10,8,inf,inf];
 LB(ix).right = 2;
 LB(ix).matrix = [0,2,-inf,-inf];
 
-% states starting point
-% ix = ix+1;
-% UB(ix).right = 4;
-% UB(ix).matrix = x0;
-% 
-% LB(ix).right = 4;
-% LB(ix).matrix = x0;
-
 % time span
 auxdata.t0 = t0; auxdata.tf = tf;
 
@@ -212,17 +194,21 @@ setup.t0 = auxdata.t0; setup.tf = auxdata.tf; setup.n = n;
 [T,U,X,P,F,in,opts] = DTQP_solve(setup,opts);
 
 close all;
+
+%% plots
 % plot inputs
 hf = figure;
 hf.Color = 'w';
 sgtitle('Controls')
 
+control_bounds = {[min(wind_speed)-0.5,max(wind_speed)+0.5],[18,20],[8,22]};
 
 for idx = 1:nu
     subplot(nu,1,idx)
     plot(T,U(:,idx),"LineWidth",1)
     xlabel('Time [s]')
     ylabel(sim_details(1).control_names{idx})
+    ylim(control_bounds{idx})
 end
 
 % plot
@@ -231,7 +217,7 @@ hf.Color = 'w';
 hold on;
 sgtitle('State')
 
-state_bounds = {[0,10],[0,8]};
+state_bounds = {[0,6],[5,8.2]};
 
 for idx = 1:nx-2
     subplot(nx-2,1,idx)

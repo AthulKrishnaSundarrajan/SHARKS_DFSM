@@ -1,4 +1,4 @@
-function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name)
+function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name,fac)
 
     % generate time
     time = linspace(t0,tf,nt);
@@ -30,9 +30,15 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name)
             nx = 4;
 
             umin = [-1,-1];umax = [1,1];
-            xmax = ones(1,nx); xmin = -ones(1,nx);
+            %xmax = fac.*ones(1,nx); xmin = -xmax;
+            
             x0 = [0,0,0.5,0];
-            samp_type = 'LHC';
+            xmax = fac.*ones(1,nx); xmin = -xmax;
+            xmax = xmax + x0;xmin = xmin+x0;
+
+          
+
+            samp_type = 'random';
 
         case 'transfer-min-fuel'
 
@@ -63,7 +69,7 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name)
     
     for i = 1:nsamples
         %u_sample = lhsdesign_modified(nt,umin,umax);
-        u_sample = generate_usamples(samp_type,umin,umax,nt,time);
+        u_sample = generate_usamples(samp_type,umin,umax,nt,time,fac);
     
         % create function
         u_pp = spline(time,u_sample');
@@ -76,7 +82,7 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name)
     sim_details = cell(nsamples,1);
     
     % define solution options
-    options = odeset('RelTol',1e-10,'AbsTol',1e-10);
+    options = odeset('RelTol',1e-9,'AbsTol',1e-9);
 
     hf = figure;
     hf.Color = 'w';
@@ -150,7 +156,7 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name)
 
 end
 
-function u_samples = generate_usamples(sampling_type,umin,umax,nt,time)
+function u_samples = generate_usamples(sampling_type,umin,umax,nt,time,fac)
     
 switch sampling_type
 
@@ -160,9 +166,13 @@ switch sampling_type
     case 'freq-excite'
         nu = length(umin);
         u_samples = ones(nt,nu);
-        perturb = 0.*rand(nt,nu);
+        perturb = 0.001.*rand(nt,nu);
 
         u_samples = u_samples.*(sin(exp(0.6.*time').*time')) + perturb;
+
+    case 'random'
+        nu = length(umin);
+        u_samples = fac.*randn(nt,nu);
 
 
 end

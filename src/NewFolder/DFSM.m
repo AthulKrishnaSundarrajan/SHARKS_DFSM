@@ -32,6 +32,22 @@ function dfsm =  DFSM(sim_details,dfsm_options)
 
     scale_flag = dfsm_options.scale_flag;
 
+    % sample the inputs and outputs
+    if isfield(dfsm_options,'use_samples')
+        input_sampled = dfsm_options.use_samples.input_sampled;
+        dx_sampled = dfsm_options.use_samples.dx_sampled;
+        output_sampled = dfsm_options.use_samples.output_sampled;
+
+        [~,~,~,inputs,state_dx,outputs] = sample_data(train_samples,sampling_type,nan);
+
+
+    else
+        tic
+        [input_sampled,dx_sampled,output_sampled,inputs,state_dx,outputs] = sample_data(train_samples,sampling_type,nsamples);
+        dfsm.nonlin_sample = toc;
+    end
+
+
     % check the type of function
     if isempty(ltype)    % no linear function, construct a nonlinear DFSM
         
@@ -41,11 +57,7 @@ function dfsm =  DFSM(sim_details,dfsm_options)
         dfsm.lin_sample = 0;
         dfsm.lin_construct = 0;
 
-        % sample the inputs and outputs
-        tic
-        [input_sampled,dx_sampled,output_sampled,inputs,state_dx,outputs] = sample_data(train_samples,sampling_type,nsamples);
-        dfsm.nonlin_sample = toc;
-
+        
         % scale
         if scale_flag
             input_max = max(inputs,[],1);
@@ -69,8 +81,8 @@ function dfsm =  DFSM(sim_details,dfsm_options)
 
         % check the options
         tic
-        nonlin = construct_nonlinear_SM(input_sampled,dx_sampled,ntype,error_ind,nderiv);
-        dfsm.nonlin_construct = toc;
+        [nonlin,nonlin_construct] = construct_nonlinear_SM(input_sampled,dx_sampled,ntype,error_ind,nderiv);
+        dfsm.nonlin_construct = nonlin_construct;
 
         % store
         dfsm.deriv.AB = [];
@@ -78,11 +90,6 @@ function dfsm =  DFSM(sim_details,dfsm_options)
         dfsm.ntype = ntype;
     
     else 
-
-        % sample the inputs and outputs
-        tic
-        [input_sampled,dx_sampled,output_sampled,inputs,state_dx,outputs] = sample_data(train_samples,sampling_type,nsamples);
-        dfsm.lin_sample = toc;
 
         % scale
         if scale_flag
@@ -165,9 +172,15 @@ function dfsm =  DFSM(sim_details,dfsm_options)
         dfsm.deriv.error_ind = error_ind;
 
         % construct corrective function
-        tic;
-        nonlin = construct_nonlinear_SM(input_sampled,dx_error,ntype,error_ind,nderiv);
-        dfsm.nonlin_construct = toc;
+        %tic;
+        if ~isempty(ntype)
+            [nonlin,nonlin_construct] = construct_nonlinear_SM(input_sampled,dx_error,ntype,error_ind,nderiv);
+
+        else
+            nonlin = [];nonlin_construct = 0;
+        end
+        
+        dfsm.nonlin_construct = nonlin_construct;
         
         % construct nonlinear corrective function for the outputs (if any)
         if ~isempty(outputs)
@@ -201,26 +214,28 @@ function dfsm =  DFSM(sim_details,dfsm_options)
 
 end
 
-function nonlin = construct_nonlinear_SM(input,output,ntype,error_ind,noutputs)
+function [nonlin,nonlin_construct] = construct_nonlinear_SM(input,output,ntype,error_ind,noutputs)
 
 % function to construct nonlinear surrogate model
 
 % initialize
 nonlin = cell(noutputs,1);
+nonlin_construct = zeros(noutputs,1);
 
 switch ntype
 
-        case 'RBF'
+       case 'RBF'
             % mean square error goal
-            mse_goal = 0.001; 
+            mse_goal = 1e-3; 
 
             ind = 1;
             for i = 1:noutputs
+                tic
                 if error_ind(i)
                      nonlin{i} = newrb(input',(output(:,ind))',mse_goal);
                      ind = ind+1;
                 end
-            
+                nonlin_construct(i) = toc;
             end
 
 
@@ -229,11 +244,13 @@ switch ntype
 
             ind = 1;
             for i = 1:noutputs
+                tic
                 if error_ind(i)
                      nonlin{i} = fitrgp(input,output(:,ind),'KernelFunction','squaredexponential','OptimizeHyperparameters','auto','HyperparameterOptimizationOptions',...
                         struct('AcquisitionFunctionName','expected-improvement-plus','UseParallel',1)); 
                      ind = ind+1;
                 end
+                nonlin_construct(i) = toc;
             
             end
 
@@ -261,93 +278,9 @@ end
 
 end
 
-function [input_sampled,state_dx_sampled,output_sampled,inputs,state_dx,outputs] = sample_data(train_samples,sampling_type,n_samples)
-
-    % function to sample the inputs and outputs
-    % two sampling stratergies available:
-    %   1. equi-distant sampling - 'ED'
-    %   2. k-means clustering sampling - 'KM'
-    
-    % extract data from structure
-    if isstruct(train_samples)
-        [inputs,state_dx,outputs] = struct2cell_dfsm(train_samples);
-
-        % concatenate
-        inputs = vertcat(inputs{:});
-        state_dx = vertcat(state_dx{:});
-        outputs = vertcat(outputs{:});
-
-    elseif iscell(train_samples)
-
-        inputs = train_samples{1};
-        state_dx = train_samples{2};
-        outputs = train_samples{3};
 
 
-    end
 
-    if isnan(n_samples)
-        input_sampled = inputs;
-        state_dx_sampled = state_dx;
-        output_sampled = outputs;
-
-        return
-    end
-
-
-    % sample
-    switch sampling_type
- 
-    
-        case 'KM'
-            % perform k means clustering
-            [input_sampled,state_dx_sampled,output_sampled] = perform_KM(inputs,state_dx,outputs,n_samples);
-    
-        case 'random'
-    
-            % get number of inputs
-            nt = size(inputs,1);
-            
-            % generate random
-            index = randsample(nt,n_samples);
-    
-            % extract
-            input_sampled = inputs(index,:);
-            state_dx_sampled = state_dx(index,:);
-            output_sampled = outputs(index,:);
-
-    end
-
-
-end
-
-function [inputs_cell,state_dx_cell,outputs_cell] = struct2cell_dfsm(sim_details)
-
-    % get the number of samples
-    nsamples = length(sim_details);
-    
-    inputs_cell = cell(nsamples,1);
-    state_dx_cell = cell(nsamples,1);
-    outputs_cell = cell(nsamples,1);
-    
-    % loop through and extract cell
-    for isample = 1:nsamples
-    
-        controls = sim_details(isample).controls;
-        states = sim_details(isample).states;
-        state_derivatives = sim_details(isample).state_derivatives;
-        outputs = sim_details(isample).outputs;
-    
-        % combine
-        inputs = [controls,states];
-        
-        % store
-        inputs_cell{isample} = inputs;
-        state_dx_cell{isample} = state_derivatives;
-        outputs_cell{isample} = outputs;
-    
-    end
-end
 
 
 function lin = construct_LPV(inputs,outputs,wind,wmin,wmax)

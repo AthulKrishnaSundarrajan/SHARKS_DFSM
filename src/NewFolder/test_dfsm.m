@@ -1,4 +1,4 @@
-function [dfsm,X_cell,dx_cell] = test_dfsm(dfsm,sim_details,ind,plot_flag)
+function [dfsm,X_cell,dx_cell] = test_dfsm(dfsm,sim_details,ind,plot_flag,sim_flag)
 
     % function to test the constructed dfsm
     ntest = length(ind);
@@ -28,16 +28,18 @@ function [dfsm,X_cell,dx_cell] = test_dfsm(dfsm,sim_details,ind,plot_flag)
         x0 = states(1,:)';
 
         % define solution options
-        options = odeset('RelTol',1e-9,'AbsTol',1e-9);
+        options = odeset('RelTol',1e-7,'AbsTol',1e-7);
         
         % run a simulation using dfsm
-        tic
-        [T,X] = ode45(@(t,x) ode_dfsm(t,x,u_fun,dfsm),time,x0,options);
-        
-        X_cell{itest,1} = states;
-        X_cell{itest,2} = X;
-
-        time_simulation(itest) = toc;
+        if sim_flag
+            tic
+            [T,X] = ode45(@(t,x) ode_dfsm(t,x,u_fun,dfsm),time,x0,options);
+            
+            X_cell{itest,1} = states;
+            X_cell{itest,2} = X;
+    
+            time_simulation(itest) = toc;
+        end
         
         % stack states and controls
         inputs = [controls,states];
@@ -51,6 +53,10 @@ function [dfsm,X_cell,dx_cell] = test_dfsm(dfsm,sim_details,ind,plot_flag)
         dx_dfsm = dx_dfsm';
         dx_cell{itest,1} = state_derivatives;
         dx_cell{itest,2} = dx_dfsm;
+
+        % plot state derivatives
+        
+
         
         % evaluate outputs if any
         if ~isempty(outputs)
@@ -77,7 +83,6 @@ function [dfsm,X_cell,dx_cell] = test_dfsm(dfsm,sim_details,ind,plot_flag)
             end
             
             %------------------------------------------------------------------
-            % plot state derivatives
             hf = figure;
             hf.Color = 'w';
             hold on;
@@ -96,7 +101,6 @@ function [dfsm,X_cell,dx_cell] = test_dfsm(dfsm,sim_details,ind,plot_flag)
                 ylabel(['d',sim_details(itest).state_names{idx}])
                 legend('DFSM','OG')
             end
-    
             %------------------------------------------------------------------
             % plot states
             hf = figure;
