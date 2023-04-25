@@ -87,7 +87,17 @@ function dx = evaluate_dfsm(inputs,dfsm,fun_type)
 
         case 'NN'
 
-            dx_nonlin(error_ind,:) = nonlin(inputs');
+            for i = 1:noutputs
+
+               if error_ind(i)
+                   nni = nonlin{i};
+
+                   dx_nonlin(i,:) = nni(inputs');
+               end
+
+           end
+
+            %dx_nonlin(error_ind,:) = nonlin(inputs');
 
     end
     

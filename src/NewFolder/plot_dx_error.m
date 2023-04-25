@@ -1,7 +1,7 @@
 clc; clear; close all;
 
 % load results
-load('TLR_dx_error.mat');
+load('TLR_dx_error_nn.mat');
 
 % number of simulations
 nsim = length(dx_cell_mf);

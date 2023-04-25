@@ -1,4 +1,4 @@
-function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name,fac)
+function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name,fac,x0)
 
     % generate time
     time = linspace(t0,tf,nt);
@@ -32,7 +32,6 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name,fac)
             umin = [-1,-1];umax = [1,1];
             %xmax = fac.*ones(1,nx); xmin = -xmax;
             
-            x0 = [0,0,0.5,0];
             xmax = fac.*ones(1,nx); xmin = -xmax;
             xmax = xmax + x0;xmin = xmin+x0;
 

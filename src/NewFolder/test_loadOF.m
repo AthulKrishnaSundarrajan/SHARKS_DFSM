@@ -4,7 +4,7 @@ clc; clear; close all;
 
 root_path = fileparts(which('INSTALL_DFSM'));
 data_path = fullfile(root_path,'data');
-fol_name = 'DFSM_rated_10';
+fol_name = '1p1_samples_belowrated';
 sim_path = fullfile(data_path,fol_name);
 
 % file names
@@ -63,7 +63,7 @@ split = [1,0];
 
 % dfsm options
 dfsm_options.ltype = 'LTI';
-dfsm_options.ntype = 'GPR';
+dfsm_options.ntype = 'RBF';
 dfsm_options.lsamples = nan;
 dfsm_options.nsamples = 500;
 dfsm_options.sampling_type = 'KM';
@@ -87,11 +87,6 @@ nu = sim_details(1).ncontrols;
 % change the form into something DTQP can use
 f = construct_function(AB,nonlin,error_ind,dfsm_options.ntype,nx,nu);
 
-
-element.dynamics = []; % only needs to have the field to work
-dyn.f = f;
-setup.internalinfo.dyn = dyn;
-
 % opts
 opts.general.displevel = 2;
 opts.general.plotflag = 1;
@@ -103,131 +98,163 @@ opts.solver.display = 'iter'; % iterations
 opts.solver.function = 'ipfmincon';
 opts.method.form = 'nonlinearprogram';
 opts.method.derivatives = 'real-central';
-opts.solver.maxiters = 250;
-opts.solver.tolerance = 1e-8;
+opts.solver.maxiters = 200;
+opts.solver.tolerance = 1e-5;
+
+element.dynamics = []; % only needs to have the field to work
+dyn.f = f;
+setup.internalinfo.dyn = dyn;
+
+nsamples = length(sim_details);
+ind = 1; % 0.9*nsamples+1:nsamples;
+
+pitch_pen = [6];
+
+ntest = length(pitch_pen);
+
+X_cell = cell(ntest,1);
+time_cell = cell(ntest,1);
+U_cell = cell(ntest,1);
+
+
+
+for i = 1:ntest
+
 
 n.ny = nx; % number of states
 n.nu = nu; % number of inputs
 
-r1 = 1e-8; 
-w1 = 1e-7; w2 = 1e-8;
 
 % objective function
 
 % min (19.8-tg)^2
+tgmax = 19.9176;
+
+%-------------------------
 lx = 1;
-L(lx).left = 0;
-L(lx).right = 0;
-L(lx).matrix = 19.8^2;
+% L(lx).left = 0;
+% L(lx).right = 0;
+% L(lx).matrix = tgmax^2;
 % 
-lx = lx+1;
+%lx = lx+1;
 L(lx).left = 1;
 L(lx).right = 1;
-L(lx).matrix = diag([0,1,1e-5]);
-
-lx = lx+1;
-L(lx).left = 0;
-L(lx).right = 1;
-L(lx).matrix = [0,-2*19.8,0];
-
-lx = lx+1;
-L(lx).left = 1;
-L(lx).right = 2;
-Lmat = zeros(nu,nx); Lmat(2,2) = 1;
-L(lx).matrix = -Lmat;
+L(lx).matrix = diag([0,1e-1,0]);
 
 % lx = lx+1;
-% L(lx).left = 2;
+% L(lx).left = 0;
+% L(lx).right = 1;
+% L(lx).matrix = [0,-2*tgmax,0];
+
+lx = lx+1;
+% eta = 0.99;
+% L(lx).left = 1;
 % L(lx).right = 2;
-% L(lx).matrix = diag([1e-0,0,0,0]);
+% Lmat = zeros(nu,nx); Lmat(2,2) = eta;
+% L(lx).matrix = -Lmat;
+
 
 
 
 % extract wind speed and construct interpolating function
-controls = sim_details(1).controls;
-states = sim_details(1).states;
-time = sim_details(1).time;
 
 
-x0 = states(1,:);
-t0 = time(1); tf = time(end);
 
-wind_speed = controls(:,1);
+    ind_ = ind;
+    controls = sim_details(ind_).controls;
+    states = sim_details(ind_).states;
+    time = sim_details(ind_).time;
+    
+    
+    x0 = states(1,:);
+    t0 = time(1); tf = time(end);
+    
+    wind_speed = controls(:,1);
+    
+    wind_pp = spline(time,wind_speed);
+    w_fun = @(t) ppval(wind_pp,t);
+    
+    
+    %% Control Bounds
+    ix = 1;
+    
+    % controls upper bound
+    UB(ix).right = 1;
+    UB(ix).matrix = {@(t) w_fun(t);
+        tgmax;
+        22.6714};
+    
+    % control lower bound
+    LB(ix).right = 1;
+    LB(ix).matrix = {@(t) w_fun(t);
+        1.6797;
+        0};
+    
+    ix = ix+1;
+    
+    % states upper bound
+    UB(ix).right = 2;
+    UB(ix).matrix = [pitch_pen(i),7.23457,inf,inf];
+    
+    % states lower bound
+    LB(ix).right = 2;
+    LB(ix).matrix = [0,1.9813,-inf,-inf];
+    
+    % time span
+    
+    
+    % combine
+    setup.element = element; setup.UB = UB; setup.LB = LB;  setup.L = L;
+    setup.t0 = t0; setup.tf = tf; setup.n = n;
+    
+    %% solve
+    [T,U,X,P,F,in,~] = DTQP_solve(setup,opts);
 
-wind_pp = spline(time,wind_speed);
-w_fun = @(t) ppval(wind_pp,t);
+    time_cell{i} = T;
+    X_cell{i} = X;
+    U_cell{i} = U;
 
-
-%% Control Bounds
-ix = 1;
-
-% controls upper bound
-UB(ix).right = 1;
-UB(ix).matrix = {@(t) w_fun(t);
-    19.8;
-    22};
-
-% control lower bound
-LB(ix).right = 1;
-LB(ix).matrix = {@(t) w_fun(t);
-    5;
-    0};
-
-ix = ix+1;
-
-% states upper bound
-UB(ix).right = 2;
-UB(ix).matrix = [10,8,inf,inf];
-
-% states lower bound
-LB(ix).right = 2;
-LB(ix).matrix = [0,2,-inf,-inf];
-
-% time span
-auxdata.t0 = t0; auxdata.tf = tf;
-
-% combine
-setup.element = element; setup.UB = UB; setup.LB = LB;  setup.L = L;
-setup.t0 = auxdata.t0; setup.tf = auxdata.tf; setup.n = n;
-
-%% solve
-[T,U,X,P,F,in,opts] = DTQP_solve(setup,opts);
-
-close all;
-
-%% plots
-% plot inputs
-hf = figure;
-hf.Color = 'w';
-sgtitle('Controls')
-
-control_bounds = {[min(wind_speed)-0.5,max(wind_speed)+0.5],[18,20],[8,22]};
-
-for idx = 1:nu
-    subplot(nu,1,idx)
-    plot(T,U(:,idx),"LineWidth",1)
-    xlabel('Time [s]')
-    ylabel(sim_details(1).control_names{idx})
-    ylim(control_bounds{idx})
-end
-
-% plot
-hf = figure;
-hf.Color = 'w';
-hold on;
-sgtitle('State')
-
-state_bounds = {[0,6],[5,8.2]};
-
-for idx = 1:nx-2
-    subplot(nx-2,1,idx)
+    close all;
+    
+    %% plots
+    % plot inputs
+    hf = figure;
+    hf.Color = 'w';
+    sgtitle('Controls')
+    
+    control_bounds = {[min(wind_speed)-0.5,max(wind_speed)+0.5],[18,20],[8,22]};
+    
+    for idx = 1:nu
+        subplot(nu,1,idx)
+        plot(T,U(:,idx),"LineWidth",1)
+        xlabel('Time [s]')
+        ylabel(sim_details(1).control_names{idx})
+        %ylim(control_bounds{idx})
+    end
+    
+    % plot
+    hf = figure;
+    hf.Color = 'w';
     hold on;
-    plot(T,X(:,idx),"LineWidth",1)
-    xlabel('Time [s]')
-    ylim(state_bounds{idx})
-    ylabel(sim_details(1).state_names{idx})
+    sgtitle('State')
+    
+    state_bounds = {[0,6],[5,8.2]};
+    
+    for idx = 1:nx-2
+        subplot(nx-2,1,idx)
+        hold on;
+        plot(T,X(:,idx),"LineWidth",1)
+        xlabel('Time [s]')
+        %ylim(state_bounds{idx})
+        ylabel(sim_details(1).state_names{idx})
+    end
+ 
+
 end
 
+mat_name = 'DFSM_oloc_results_pitch_pen.mat';
+
+save(mat_name,"time_cell",'X_cell','U_cell')
 return
 
 

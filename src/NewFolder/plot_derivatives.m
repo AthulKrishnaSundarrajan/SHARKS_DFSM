@@ -25,7 +25,7 @@ test_simulations = sim_details(test_simulations_ind);
 %% train multifidelity dfsm
 % dfsm options
 dfsm_options.ltype = 'LTI';
-dfsm_options.ntype = 'RBF';
+dfsm_options.ntype = 'NN';
 dfsm_options.nsamples = 500;
 dfsm_options.sampling_type = 'KM';
 dfsm_options.train_test_split = split;
@@ -37,7 +37,7 @@ dfsm_mf = DFSM(sim_details,dfsm_options);
 %% train a single nonlinear dfsm
 % dfsm options
 dfsm_options.ltype = '';
-dfsm_options.ntype = 'RBF';
+dfsm_options.ntype = 'NN';
 dfsm_options.nsamples = 500;
 dfsm_options.sampling_type = 'KM';
 dfsm_options.train_test_split = split;
@@ -72,11 +72,11 @@ time = sim_details(1).time;
 controls = sim_details(1).controls;
 %state_derivatives = sim_detials(ind).state_derivatives;
 
-[dfsm_mf,X_cell_mf,~] = test_dfsm(dfsm_mf,test_simulations(ind),1,false,~false);
+[dfsm_mf,X_cell_mf,~] = test_dfsm(dfsm_mf,test_simulations,1:0.2*nsamples,false,~false);
 
-[dfsm_nl,X_cell_nl,~] = test_dfsm(dfsm_nl,test_simulations(ind),1,false,~false);
+[dfsm_nl,X_cell_nl,~] = test_dfsm(dfsm_nl,test_simulations,1:0.2*nsamples,false,~false);
 
-[dfsm_lin,X_cell_lin,~] = test_dfsm(dfsm_lin,test_simulations(ind),1,false,~false);
+[dfsm_lin,X_cell_lin,~] = test_dfsm(dfsm_lin,test_simulations,1:0.2*nsamples,false,~false);
 
 [dfsm_mf,~,dx_cell_mf] = test_dfsm(dfsm_mf,test_simulations,1:0.2*nsamples,false,false);
 
@@ -86,10 +86,10 @@ controls = sim_details(1).controls;
 
 
 
-% save results
-mat_name = 'TLR_simulations.mat';
+% save resul
+mat_name = 'TLR_simulations_nn.mat';
 
-save(mat_name,"dx_cell_nl","dx_cell_mf",'dx_cell_lin','X_cell_nl','X_cell_mf','X_cell_lin','time','controls');
+save(mat_name,"dx_cell_nl","dx_cell_mf",'dx_cell_lin','X_cell_nl','X_cell_mf','X_cell_lin','time','controls',"ind");
 
 
 

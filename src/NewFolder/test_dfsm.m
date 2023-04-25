@@ -28,7 +28,7 @@ function [dfsm,X_cell,dx_cell] = test_dfsm(dfsm,sim_details,ind,plot_flag,sim_fl
         x0 = states(1,:)';
 
         % define solution options
-        options = odeset('RelTol',1e-7,'AbsTol',1e-7);
+        options = odeset('RelTol',1e-6,'AbsTol',1e-6);
         
         % run a simulation using dfsm
         if sim_flag

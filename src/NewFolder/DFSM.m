@@ -258,8 +258,8 @@ switch ntype
 
             trainFcn = 'trainlm';  % Levenberg-Marquardt backpropagation.
 
-            % create a Fitting Network
-            hiddenLayerSize = 60;
+            % create a Fitting rk
+            hiddenLayerSize = [25,25,25,25];
             net = fitnet(hiddenLayerSize,trainFcn);
             
             % setup Division of Data for Training, Validation, Testing
@@ -269,18 +269,24 @@ switch ntype
             net.trainParam.max_fail = 5000;
             
             % train the Network
-            net = train(net,input',output');
-            nonlin = net;
+            ind = 1;
+            for i = 1:noutputs
+                tic
+                if error_ind(i)
+                     nonlin{i} = train(net,input',(output(:,ind))');
+                     ind = ind+1;
+                end
+                nonlin_construct(i) = toc;
+            end
+
+%             net = train(net,input',output');
+%             nonlin = net;
 
 
 end
 
 
 end
-
-
-
-
 
 
 function lin = construct_LPV(inputs,outputs,wind,wmin,wmax)
