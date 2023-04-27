@@ -14,7 +14,7 @@ fname = which(fname);
 nt = 90; nsamples = 100;
 
 % run simulation and get results
-fac = 0.5;
+fac = 1;
 sim_details = run_simulation(t0,tf,nt,nsamples,fun_name,fac);
 
 split = [0.8,0.2];
@@ -25,7 +25,7 @@ test_simulations = sim_details(test_simulations_ind);
 %% train multifidelity dfsm
 % dfsm options
 dfsm_options.ltype = 'LTI';
-dfsm_options.ntype = 'NN';
+dfsm_options.ntype = 'RBF';
 dfsm_options.nsamples = 500;
 dfsm_options.sampling_type = 'KM';
 dfsm_options.train_test_split = split;
@@ -37,7 +37,7 @@ dfsm_mf = DFSM(sim_details,dfsm_options);
 %% train a single nonlinear dfsm
 % dfsm options
 dfsm_options.ltype = '';
-dfsm_options.ntype = 'NN';
+dfsm_options.ntype = 'RBF';
 dfsm_options.nsamples = 500;
 dfsm_options.sampling_type = 'KM';
 dfsm_options.train_test_split = split;
@@ -87,7 +87,7 @@ controls = sim_details(1).controls;
 
 
 % save resul
-mat_name = 'TLR_simulations_nn.mat';
+mat_name = 'TLR_simulations.mat';
 
 save(mat_name,"dx_cell_nl","dx_cell_mf",'dx_cell_lin','X_cell_nl','X_cell_mf','X_cell_lin','time','controls',"ind");
 

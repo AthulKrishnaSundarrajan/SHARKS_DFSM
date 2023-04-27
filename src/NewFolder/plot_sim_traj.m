@@ -3,7 +3,7 @@ clc; clear; close all;
 % set seed
 rng(4357)
 
-load('TLR_simulations_nn.mat');
+load('TLR_simulations.mat');
 
 nsamples = length(dx_cell_lin);
 

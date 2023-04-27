@@ -171,7 +171,8 @@ switch sampling_type
 
     case 'random'
         nu = length(umin);
-        u_samples = fac.*randn(nt,nu);
+        umax = 1.2.*fac.*umax;umin = 1.2.*fac.*umin;
+        u_samples = (umax-umin).*rand(nt,nu) + umin;
 
 
 end

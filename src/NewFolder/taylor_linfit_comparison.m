@@ -16,7 +16,7 @@ split = [1,0];
 
 % run simulation and get results
 
-fac = 0.1; %logspace(-2,0,nfac);
+fac = 0.05; %logspace(-2,0,nfac);
 x0 = [0,0,0.5,0];
 
 dfsm_options.ltype = 'LTI';
@@ -39,7 +39,7 @@ dfsm = DFSM(train_simulations,dfsm_options);
 
 [~,~,~,inputs,~,~] = sample_data(sim_details,'KM',nan);
 
-saveflag = false;
+saveflag = ~false;
 fol_name = 'plots_linear_validation';
 x_lim = [0,t_f];
 
@@ -188,7 +188,7 @@ sys_taylor = ss(A_taylor,B_taylor,C_,D);
 tf_linfit = tf(sys_linfit);tf_taylor = tf(sys_taylor);
 
 
-W = logspace(-1,3,1e4);
+W = logspace(-2,3,1e4);
 
 [MAG1,PHASE1] = bode(sys_linfit,W);
 
@@ -227,7 +227,7 @@ taskflag = 'axes'; commonFigureTasks;
 ha.XScale = 'log';ha.YScale = 'linear';
 
 if saveflag
-        savename = ['freq_x1u1_',num2str(idx)];
+        savename = ['freq_x3u1'];
         pathpdf = mfoldername(mfilename('fullpath'),fol_name);
         filename = fullfile(pathpdf,savename);
         str = strcat("export_fig '",filename,"' -pdf");
@@ -256,7 +256,7 @@ taskflag = 'axes'; commonFigureTasks;
 ha.XScale = 'log';ha.YScale = 'linear';
 
 if saveflag
-        savename = ['freq_x1u2_',num2str(idx)];
+        savename = ['freq_x3u2'];
         pathpdf = mfoldername(mfilename('fullpath'),fol_name);
         filename = fullfile(pathpdf,savename);
         str = strcat("export_fig '",filename,"' -pdf");
@@ -286,7 +286,7 @@ ha.XScale = 'log';ha.YScale = 'linear';
 
 
 if saveflag
-        savename = ['freq_x2u1_',num2str(idx)];
+        savename = ['freq_x4u1'];
         pathpdf = mfoldername(mfilename('fullpath'),fol_name);
         filename = fullfile(pathpdf,savename);
         str = strcat("export_fig '",filename,"' -pdf");
@@ -316,7 +316,7 @@ taskflag = 'axes'; commonFigureTasks;
 ha.XScale = 'log';ha.YScale = 'linear';
 
 if saveflag
-        savename = ['freq_x2u2_',num2str(idx)];
+        savename = ['freq_x4u2'];
         pathpdf = mfoldername(mfilename('fullpath'),fol_name);
         filename = fullfile(pathpdf,savename);
         str = strcat("export_fig '",filename,"' -pdf");

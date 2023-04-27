@@ -4,7 +4,7 @@ clc; clear; close all;
 
 root_path = fileparts(which('INSTALL_DFSM'));
 data_path = fullfile(root_path,'data');
-fol_name = '1p1_samples_belowrated';
+fol_name = 'DFSM_transition_10';
 sim_path = fullfile(data_path,fol_name);
 
 % file names
@@ -58,7 +58,7 @@ add_dx2 = true;
 sim_details = simulation_details(sim_files,reqd_states,reqd_controls,reqd_outputs,filter_flag,filter_args,add_dx2,tmin,tmax);
 
 
-split = [1,0];
+split = [0.8,0.2];
 
 
 % dfsm options
@@ -99,18 +99,18 @@ opts.solver.function = 'ipfmincon';
 opts.method.form = 'nonlinearprogram';
 opts.method.derivatives = 'real-central';
 opts.solver.maxiters = 200;
-opts.solver.tolerance = 1e-5;
+opts.solver.tolerance = 1e-7;
 
 element.dynamics = []; % only needs to have the field to work
 dyn.f = f;
 setup.internalinfo.dyn = dyn;
 
 nsamples = length(sim_details);
-ind = 1; % 0.9*nsamples+1:nsamples;
+ind =  0.8*nsamples+1:nsamples;
 
 pitch_pen = [6];
 
-ntest = length(pitch_pen);
+ntest = length(ind);
 
 X_cell = cell(ntest,1);
 time_cell = cell(ntest,1);
@@ -121,37 +121,38 @@ U_cell = cell(ntest,1);
 for i = 1:ntest
 
 
-n.ny = nx; % number of states
-n.nu = nu; % number of inputs
-
-
-% objective function
-
-% min (19.8-tg)^2
-tgmax = 19.9176;
-
-%-------------------------
-lx = 1;
-% L(lx).left = 0;
-% L(lx).right = 0;
-% L(lx).matrix = tgmax^2;
-% 
-%lx = lx+1;
-L(lx).left = 1;
-L(lx).right = 1;
-L(lx).matrix = diag([0,1e-1,0]);
-
-% lx = lx+1;
-% L(lx).left = 0;
-% L(lx).right = 1;
-% L(lx).matrix = [0,-2*tgmax,0];
-
-lx = lx+1;
-% eta = 0.99;
-% L(lx).left = 1;
-% L(lx).right = 2;
-% Lmat = zeros(nu,nx); Lmat(2,2) = eta;
-% L(lx).matrix = -Lmat;
+    n.ny = nx; % number of states
+    n.nu = nu; % number of inputs
+    
+    
+    % objective function
+    
+    % min (19.8-tg)^2
+    tgmax = 19.9176;
+    wt = 1e-2; % 1e-2 works
+    
+    %-------------------------
+    lx = 1;
+    L(lx).left = 0;
+    L(lx).right = 0;
+    L(lx).matrix = wt*tgmax^2;
+    % 
+    %lx = lx+1;
+    L(lx).left = 1;
+    L(lx).right = 1;
+    L(lx).matrix = diag([0,wt*1,0.5]); % 0.5 works for transition region
+    
+    lx = lx+1;
+    L(lx).left = 0;
+    L(lx).right = 1;
+    L(lx).matrix = [0,-2*wt*tgmax,0];
+    
+    lx = lx+1;
+    eta = 0.99;
+    L(lx).left = 1;
+    L(lx).right = 2;
+    Lmat = zeros(nu,nx); Lmat(2,2) = eta;
+    L(lx).matrix = -Lmat;
 
 
 
@@ -160,7 +161,7 @@ lx = lx+1;
 
 
 
-    ind_ = ind;
+    ind_ = ind(i);
     controls = sim_details(ind_).controls;
     states = sim_details(ind_).states;
     time = sim_details(ind_).time;
@@ -194,11 +195,26 @@ lx = lx+1;
     
     % states upper bound
     UB(ix).right = 2;
-    UB(ix).matrix = [pitch_pen(i),7.23457,inf,inf];
+    UB(ix).matrix = [6,7.23457,inf,inf];
     
     % states lower bound
     LB(ix).right = 2;
-    LB(ix).matrix = [0,1.9813,-inf,-inf];
+    LB(ix).matrix = [-5,1.9813,-inf,-inf];
+    
+    
+
+%     if x0(2) > UB(ix).matrix(2)
+%         x0(2) = UB(ix).matrix(2);
+%     end
+
+%     ix = ix+1;
+%     % initial states
+%     UB(ix).right = 4;
+%     UB(ix).matrix = x0;
+%     
+%     % states lower bound
+%     LB(ix).right = 4;
+%     LB(ix).matrix = x0;
     
     % time span
     
@@ -249,10 +265,9 @@ lx = lx+1;
         ylabel(sim_details(1).state_names{idx})
     end
  
-
 end
 
-mat_name = 'DFSM_oloc_results_pitch_pen.mat';
+mat_name = 'DFSM_oloc_results_transition.mat';
 
 save(mat_name,"time_cell",'X_cell','U_cell')
 return
