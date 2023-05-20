@@ -4,7 +4,7 @@ clc; clear; close all;
 
 root_path = fileparts(which('INSTALL_DFSM'));
 data_path = fullfile(root_path,'data');
-fol_name = 'DFSM_transition_10';
+fol_name = 'DFSM_1p6';
 sim_path = fullfile(data_path,fol_name);
 
 % file names
@@ -47,7 +47,7 @@ filter_args.filt_controls_tf = [1,0,0];
 % filter flag
 filter_flag = true;
 
-reqd_outputs = {'TwrBsFxt','TwrBsMxt'};
+reqd_outputs = {'TwrBsFxt'};
 
 % time
 tmin = 0;
@@ -108,7 +108,7 @@ setup.internalinfo.dyn = dyn;
 nsamples = length(sim_details);
 ind =  0.8*nsamples+1:nsamples;
 
-pitch_pen = [6];
+pitch_pen = [7,7];
 
 ntest = length(ind);
 
@@ -129,30 +129,30 @@ for i = 1:ntest
     
     % min (19.8-tg)^2
     tgmax = 19.9176;
-    wt = 1e-2; % 1e-2 works
+    wt = 1e-0; % 1e-2 works
     
     %-------------------------
     lx = 1;
-    L(lx).left = 0;
-    L(lx).right = 0;
-    L(lx).matrix = wt*tgmax^2;
+%     L(lx).left = 0;
+%     L(lx).right = 0;
+%     L(lx).matrix = wt*tgmax^2;
     % 
     %lx = lx+1;
     L(lx).left = 1;
     L(lx).right = 1;
-    L(lx).matrix = diag([0,wt*1,0.5]); % 0.5 works for transition region
+    L(lx).matrix = diag([0,1e-5,0.5]); % 1e-3,0.5 works for transition region
     
-    lx = lx+1;
-    L(lx).left = 0;
-    L(lx).right = 1;
-    L(lx).matrix = [0,-2*wt*tgmax,0];
+%     lx = lx+1;
+%     L(lx).left = 0;
+%     L(lx).right = 1;
+%     L(lx).matrix = [0,-2*wt*tgmax,0];
     
     lx = lx+1;
     eta = 0.99;
     L(lx).left = 1;
     L(lx).right = 2;
     Lmat = zeros(nu,nx); Lmat(2,2) = eta;
-    L(lx).matrix = -Lmat;
+    L(lx).matrix = -wt*Lmat;
 
 
 
@@ -195,7 +195,7 @@ for i = 1:ntest
     
     % states upper bound
     UB(ix).right = 2;
-    UB(ix).matrix = [6,7.23457,inf,inf];
+    UB(ix).matrix = [7,7.23457,inf,inf];
     
     % states lower bound
     LB(ix).right = 2;
@@ -203,9 +203,9 @@ for i = 1:ntest
     
     
 
-%     if x0(2) > UB(ix).matrix(2)
-%         x0(2) = UB(ix).matrix(2);
-%     end
+    if x0(2) > UB(ix).matrix(2)
+        x0(2) = UB(ix).matrix(2);
+    end
 
 %     ix = ix+1;
 %     % initial states
@@ -230,7 +230,7 @@ for i = 1:ntest
     X_cell{i} = X;
     U_cell{i} = U;
 
-    close all;
+    %close all;
     
     %% plots
     % plot inputs
@@ -267,7 +267,7 @@ for i = 1:ntest
  
 end
 
-mat_name = 'DFSM_oloc_results_transition.mat';
+mat_name = 'DFSM_oloc_results_transition_test7.mat';
 
 save(mat_name,"time_cell",'X_cell','U_cell')
 return

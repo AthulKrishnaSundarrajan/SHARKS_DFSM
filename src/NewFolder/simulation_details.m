@@ -22,7 +22,7 @@ function sim_details =  simulation_details(simulation_files,reqd_states,reqd_con
     % initialize struct to store details
     sim_details = cell(nsim,1);
 
-    parfor isim = 1:nsim
+    for isim = 1:nsim
         
         % name of the file
         iname = simulation_files{isim};

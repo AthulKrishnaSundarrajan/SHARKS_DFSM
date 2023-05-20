@@ -1,4 +1,4 @@
-function [dfsm,X_cell,dx_cell] = test_dfsm(dfsm,sim_details,ind,plot_flag,sim_flag)
+function [dfsm,X_cell,dx_cell,Y_cell] = test_dfsm(dfsm,sim_details,ind,plot_flag,sim_flag)
 
     % function to test the constructed dfsm
     ntest = length(ind);
@@ -8,6 +8,8 @@ function [dfsm,X_cell,dx_cell] = test_dfsm(dfsm,sim_details,ind,plot_flag,sim_fl
 
     X_cell = cell(ntest,2);
     dx_cell = cell(ntest,2);
+
+    Y_cell = cell(ntest,2);
     
 
 
@@ -121,6 +123,8 @@ function [dfsm,X_cell,dx_cell] = test_dfsm(dfsm,sim_details,ind,plot_flag,sim_fl
             %------------------------------------------------------------------
             % plot outputs if any
             if ~isempty(outputs)
+                Y_cell{itest,1} = outputs;
+                Y_cell{itest,2} = outputs_dfsm;
     
                 % plot
                 hf = figure;

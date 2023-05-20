@@ -47,7 +47,7 @@ function dx = evaluate_dfsm(inputs,dfsm,fun_type)
 
             case 'LPV'
                 % evaluate lpv 
-                dx_lin = evaluate_LPV(dfsm.lpv.lin,dfsm.lpv.wmax,dfsm.lpv.wmin,dfsm.lpv.nstates,inputs,noutputs);
+                dx_lin = evaluate_LPV(lin,dfsm.lpv.wmax,dfsm.lpv.wmin,inputs,noutputs);
 
         end
     end
@@ -97,7 +97,7 @@ function dx = evaluate_dfsm(inputs,dfsm,fun_type)
 
            end
 
-            %dx_nonlin(error_ind,:) = nonlin(inputs');
+
 
     end
     

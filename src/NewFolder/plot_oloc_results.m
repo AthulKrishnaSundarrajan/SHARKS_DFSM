@@ -1,7 +1,7 @@
 clc; clear; close all;
 
 % load results
-load('DFSM_oloc_results_transition.mat')
+load('DFSM_oloc_results_belowrated.mat')
 
 fol_name = 'plot_oloc_results/transition';
 saveflag = false;
@@ -10,17 +10,17 @@ saveflag = false;
 ntests = length(time_cell);
 linewidth = 0.75;
 
-plot_inds = [1];
+plot_inds = [1,2];
 
 C = materialColors;
 
-blue = C.blue(6,:);
+blue = C.blue(7,:);
 yellow = C.yellow(10,:);
 red = C.red(7,:);
 
 color_map = cell(ntests,1);
 color_map{plot_inds(1)} = blue;
-%color_map{plot_inds(2)} = yellow;
+color_map{plot_inds(2)} = yellow;
 
 
 %---------------------------------------------------
@@ -62,7 +62,7 @@ for i = plot_inds
 
 U = U_cell{i};
 plot(time_cell{i},U(:,2),'linewidth',linewidth,'color',color_map{i})
-%ylim([19,20])
+ylim([19,20])
 
 end
 
@@ -138,7 +138,7 @@ for i = plot_inds
 
 X = X_cell{i};
 plot(time_cell{i},X(:,2),'linewidth',linewidth,'color',color_map{i})
-%ylim([6.5,7.5])
+ylim([6.5,7.5])
 
 end
 
@@ -168,7 +168,7 @@ U = U_cell{i};
 
 power = U(:,2).*(X(:,2).*0.1047198*0.9941);
 plot(time_cell{i},power,'linewidth',linewidth,'color',color_map{i})
-%ylim([14.5,15.5])
+ylim([14.5,15.5])
 
 end
 

@@ -83,10 +83,10 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name,fac,x0)
     % define solution options
     options = odeset('RelTol',1e-9,'AbsTol',1e-9);
 
-    hf = figure;
-    hf.Color = 'w';
-    hold on;
-    plot(nY0(1,:),nY0(2,:),'o')
+%     hf = figure;
+%     hf.Color = 'w';
+%     hold on;
+%     plot(nY0(1,:),nY0(2,:),'o')
     %xlim([xmin(1),xmax(1)]);ylim([xmin(2),xmax(2)]);
     
     % loop through and evaluate high fidelity function
@@ -98,7 +98,7 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name,fac,x0)
         [T,X] = ode45(@(t,y)og_deriv_function(t,y,u_fun,fun_name),[t0,tf],nY0(:,isamples),options);
 
         % plot states
-        plot(X(:,1),X(:,2),'.','markersize',5)
+        %plot(X(:,1),X(:,2),'.','markersize',5)
     
         % evaluate control
         U = u_fun(T);

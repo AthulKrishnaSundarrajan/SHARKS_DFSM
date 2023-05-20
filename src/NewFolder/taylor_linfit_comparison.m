@@ -16,7 +16,7 @@ split = [1,0];
 
 % run simulation and get results
 
-fac = 0.05; %logspace(-2,0,nfac);
+fac = 0.001; %logspace(-2,0,nfac);
 x0 = [0,0,0.5,0];
 
 dfsm_options.ltype = 'LTI';
@@ -40,7 +40,7 @@ dfsm = DFSM(train_simulations,dfsm_options);
 [~,~,~,inputs,~,~] = sample_data(sim_details,'KM',nan);
 
 saveflag = ~false;
-fol_name = 'plots_linear_validation';
+fol_name = 'plots_linear_validation/new';
 x_lim = [0,t_f];
 
 
@@ -81,9 +81,6 @@ L_taylor = double(subs(L_taylor,I,I0));
 
 % create a dfsm model with the taylor series expansion as the linear model
 
-mse_dx_taylor = zeros(0.2*nsamples,length(x));
-mse_dx_linfit = zeros(0.2*nsamples,length(x));
-
 A_taylor = L_taylor(:,3:end);
 B_taylor = L_taylor(:,1:2);
 
@@ -95,13 +92,6 @@ L_linfit = (dfsm.deriv.AB)';
 
 dx_taylor = test_taylor(A_taylor,B_taylor,test_simulations,x0,u0);
 
-for n = 1:0.2*nsamples
-
-    mse_dx_taylor(n,:) = calculate_mse(dx_taylor{n,1},dx_taylor{n,2});
-    mse_dx_linfit(n,:) = calculate_mse(dx_linfit{n,1},dx_linfit{n,2});
-
-
-end
 
 A_linfit = L_linfit(:,3:end);
 B_linfit = L_linfit(:,1:2);
@@ -129,7 +119,8 @@ for idx = 1:4
     y_label = ['$\dot{\xi}_',num2str(idx),'$'];
 
     xlabel('Time [s]');ylabel(y_label)
-    
+    fontlabel = fontlabel + 2;
+    fonttick = fonttick+2;
     taskflag = 'axes'; commonFigureTasks;
 
     if saveflag
@@ -144,7 +135,7 @@ for idx = 1:4
 
 end
 
-legend_entries = {'$\hat{f}_{\textrm{linfit}}$','$\hat{f}_{\textrm{taylor}}$','$f_{\textrm{actual}}$'};
+legend_entries = {'$\hat{f}_{\textrm{linfit}}$','$\hat{f}_{\textrm{taylor}}$','$f$'};
 
 %----------------------
 hf2 = copyfig(hf);
@@ -186,6 +177,21 @@ sys_linfit = ss(A_linfit,B_linfit,C_,D);
 sys_taylor = ss(A_taylor,B_taylor,C_,D);
 
 tf_linfit = tf(sys_linfit);tf_taylor = tf(sys_taylor);
+
+
+[z_linfit,p_linfit,~] = zpkdata(tf_linfit);
+[z_taylor,p_taylor,~] = zpkdata(tf_taylor);
+
+p_linfit = vertcat(p_linfit{:});
+p_taylor = vertcat(p_taylor{:});
+
+
+hf = figure;
+hf.Color = 'w'; hold on;
+commonFigureProperties
+
+plot(real(p_linfit),imag(p_linfit),'.','markersize',15)
+plot(real(p_taylor),imag(p_taylor),'.','markersize',15)
 
 
 W = logspace(-2,3,1e4);

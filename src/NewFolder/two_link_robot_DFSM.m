@@ -22,7 +22,10 @@ switch dm_type
         fun_name = 'two-link-robot';
         
         % run simulation and get results
-        sim_details = run_simulation(t0,tf,nt,nsamples,fun_name,1);
+        fac = 1;
+        x0 = zeros(1,4);
+        sim_details = run_simulation(t0,tf,nt,nsamples,fun_name,fac,x0);
+        
         
         % train-test split
         split = [1,0];

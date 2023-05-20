@@ -146,10 +146,21 @@ function dfsm =  DFSM(sim_details,dfsm_options)
                 AB = construct_LPV(inputs,state_dx,wind,wmin,wmax);
                 
                 % evaluate the error between original model and DFSM model
-                dx_error = evaluate_LPV(AB,wmax,wmin,nstates,input_sampled,nderiv);
+                dx_error = dx_sampled - evaluate_LPV(AB,wmax,wmin,input_sampled,nderiv);
+
+                if ~isempty(outputs)
+                    CD = construct_LPV(inputs,outputs,wind,wmin,wmax);
+                else
+                    CD = [];
+                end
+
+                if ~isempty(outputs)
+                    output_error = output_sampled - evaluate_LPV(CD,wmax,wmin,input_sampled,noutputs);
+                end
                 
                 % store values
-                dfsm.deriv.lin = AB;
+                dfsm.deriv.AB = AB;
+                op.CD = CD;
                 dfsm.lpv.wmin = wmin;
                 dfsm.lpv.wmax = wmax;
                 dfsm.lpv.nstates = nstates;
@@ -336,8 +347,11 @@ function lin = construct_LPV(inputs,outputs,wind,wmin,wmax)
     
     end
     
-    lin_pp = interp1(W,AB_interp,'nearest','pp');
-    lin = @(w) ppval(lin_pp,w);
+
+    for ix = 1:noutputs
+        lin_pp = interp1(W,AB_interp(:,:,ix),'nearest','pp');
+        lin{ix} = @(w) ppval(lin_pp,w);
+    end
 
 
 end

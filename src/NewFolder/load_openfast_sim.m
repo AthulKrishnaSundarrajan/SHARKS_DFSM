@@ -41,9 +41,20 @@ function sim_detail = load_openfast_sim(sim_name,reqd_states,reqd_controls,reqd_
     for i = 1:length(reqd_states)
         state_ind(i) = find(contains(ChanName,reqd_states{i}));
     end
+    
+    if ~isempty(reqd_outputs)
+        for i = 1:length(reqd_outputs)
+            output_ind(i) = find(contains(ChanName,reqd_outputs{i}));
+        end
 
-    for i = 1:length(reqd_outputs)
-        output_ind(i) = find(contains(ChanName,reqd_outputs{i}));
+        outputs = Channels(t_ind,output_ind);
+        outputs = outputs;
+
+    else
+        output_ind = [];
+        outputs = [];
+
+            
     end
 
     % extract control index
@@ -59,8 +70,7 @@ function sim_detail = load_openfast_sim(sim_name,reqd_states,reqd_controls,reqd_
     % extract channels
     states = Channels(t_ind,state_ind);
     controls = Channels(t_ind,control_ind);
-    outputs = Channels(t_ind,output_ind);
-    outputs = outputs./[1000,10000];
+
     controls(:,gt_flag) = controls(:,gt_flag)/1000;
 
     % add to struct
