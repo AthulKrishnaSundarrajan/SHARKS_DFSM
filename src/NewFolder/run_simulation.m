@@ -35,8 +35,7 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name,fac,x0)
             xmax = fac.*ones(1,nx); xmin = -xmax;
             xmax = xmax + x0;xmin = xmin+x0;
 
-          
-
+         
             samp_type = 'random';
 
         case 'transfer-min-fuel'
@@ -50,8 +49,6 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name,fac,x0)
             xmax = ones(1,nx); xmin = -ones(1,nx);
             x0 = [1,0,0,1];
             samp_type = 'freq-excite';
-
-
 
 
     end
@@ -95,7 +92,8 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name,fac,x0)
         u_fun = u_samples{isamples};
         
         % run simulation
-        [T,X] = ode45(@(t,y)og_deriv_function(t,y,u_fun,fun_name),[t0,tf],nY0(:,isamples),options);
+        [T,X] = ode45(@(t,y)og_deriv ...
+            _function(t,y,u_fun,fun_name),[t0,tf],nY0(:,isamples),options);
 
         % plot states
         %plot(X(:,1),X(:,2),'.','markersize',5)

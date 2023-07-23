@@ -1,6 +1,6 @@
 % function to load openfast simulation
 
-function sim_detail = load_openfast_sim(sim_name,reqd_states,reqd_controls,reqd_outputs,tmin,tmax)
+function sim_detail = load_openfast_sim(sim_name,reqd_states,reqd_controls,reqd_outputs,scale_outputs,tmin,tmax)
 
     % find type of binary file
     suffix = sim_name(end-4:end);
@@ -38,8 +38,13 @@ function sim_detail = load_openfast_sim(sim_name,reqd_states,reqd_controls,reqd_
     end
     
     % extract state index
+    ptfm_surge = false(length(reqd_states),1);
     for i = 1:length(reqd_states)
         state_ind(i) = find(contains(ChanName,reqd_states{i}));
+
+        if strcmpi(reqd_states{i},'PtfmSurge')
+            ptfm_surge(i) = true;
+        end
     end
     
     if ~isempty(reqd_outputs)
@@ -49,6 +54,15 @@ function sim_detail = load_openfast_sim(sim_name,reqd_states,reqd_controls,reqd_
 
         outputs = Channels(t_ind,output_ind);
         outputs = outputs;
+
+        if scale_outputs
+
+            scale_fac = 10.^(floor(log10(mean(outputs))));
+            outputs = outputs./scale_fac;
+
+
+
+        end
 
     else
         output_ind = [];
@@ -72,6 +86,7 @@ function sim_detail = load_openfast_sim(sim_name,reqd_states,reqd_controls,reqd_
     controls = Channels(t_ind,control_ind);
 
     controls(:,gt_flag) = controls(:,gt_flag)/1000;
+    states(:,ptfm_surge) = states(:,ptfm_surge)/1;
 
     % add to struct
     sim_detail.time = time;

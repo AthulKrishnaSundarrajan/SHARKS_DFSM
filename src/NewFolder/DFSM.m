@@ -86,8 +86,24 @@ function dfsm =  DFSM(sim_details,dfsm_options)
 
         % store
         dfsm.deriv.AB = [];
+        
         dfsm.deriv.nonlin = nonlin;
         dfsm.ntype = ntype;
+
+        if ~isempty(outputs)
+            op.error_ind = true(noutputs,1);
+            op.nonlin = construct_nonlinear_SM(input_sampled,output_sampled,ntype,true(noutputs,1),noutputs);
+        else
+            op.nonlin = [];
+        end
+        
+        % store
+        dfsm.deriv.nonlin = nonlin;
+        op.CD = [];
+        dfsm.op = op;
+        dfsm.ntype = ntype;
+
+
     
     else 
 
@@ -258,7 +274,7 @@ switch ntype
                 tic
                 if error_ind(i)
                      nonlin{i} = fitrgp(input,output(:,ind),'KernelFunction','squaredexponential','OptimizeHyperparameters','auto','HyperparameterOptimizationOptions',...
-                        struct('AcquisitionFunctionName','expected-improvement-plus','UseParallel',1)); 
+                        struct('AcquisitionFunctionName','expected-improvement-plus','UseParallel',1,'ShowPlots',false)); 
                      ind = ind+1;
                 end
                 nonlin_construct(i) = toc;

@@ -1,7 +1,7 @@
 % Function used to load openfast simulation results, extract required
 % states and controls,and filter signals as required
 
-function sim_details =  simulation_details(simulation_files,reqd_states,reqd_controls,reqd_outputs,filter_flag,filter_args,add_dx2,tmin,tmax)
+function sim_details =  simulation_details(simulation_files,reqd_states,reqd_controls,reqd_outputs,scale_outputs,filter_flag,filter_args,add_dx2,tmin,tmax)
 
     % get the number of simulations
     nsim = length(simulation_files);
@@ -28,7 +28,7 @@ function sim_details =  simulation_details(simulation_files,reqd_states,reqd_con
         iname = simulation_files{isim};
         
         % extract the channels from OpenFAST simulation
-        sim_detail = load_openfast_sim(iname,reqd_states,reqd_controls,reqd_outputs,tmin,tmax);
+        sim_detail = load_openfast_sim(iname,reqd_states,reqd_controls,reqd_outputs,scale_outputs,tmin,tmax);
 
         % filter if needed
         if filter_flag

@@ -5,6 +5,7 @@ function sim_details = filter_signals(sim_details,filter_args)
     time = sim_details.time;
     states = sim_details.states;
     controls = sim_details.controls;
+    outputs = sim_details.outputs;
 
     % extract arguments
     filt_states = filter_args.filt_states;
@@ -37,10 +38,31 @@ function sim_details = filter_signals(sim_details,filter_args)
 
     end
 
+    % filter outputs
+    if ~isempty(outputs)
+
+         filt_outputs = filter_args.filt_outputs;
+         filt_outputs_tf = filter_args.filt_outputs_tf;
+
+
+        for iot = 1:length(filt_outputs)
+
+            if filt_outputs(iot)
+
+                t_f = filt_outputs_tf(iot);
+                outputs(:,iot) = perform_filter(outputs(:,iot),time,t_f);
+
+            end
+        end
+
+
+    end
+
     % add
 
     sim_details.states = states;
     sim_details.controls = controls;
+    sim_details.outputs = outputs;
 
 
 end

@@ -15,7 +15,7 @@ fac = 1; x0 = zeros(1,4);
 sim_details = run_simulation(t0,tf,nt,nsamples,fun_name,fac,x0);
 
 split = [0.8,0.2];
-saveflag = ~false;
+saveflag = false;
 fol_name = 'plot_sampling';
 
 x0_array = zeros(0.8*nsamples,4);

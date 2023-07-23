@@ -4,10 +4,10 @@ clc; clear; close all;
 
 root_path = fileparts(which('INSTALL_DFSM'));
 data_path = fullfile(root_path,'data');
-fol_name_cell = {'DFSM_MHK'};
+fol_name_cell = {'DFSM_transition_10'};
 
-results_cell = cell(3,1);
-dfsm_cell = cell(3,1);
+results_cell = cell(2,1);
+dfsm_cell = cell(2,1);
 
 for ifol = 1:length(fol_name_cell)
 
@@ -47,13 +47,16 @@ for ifol = 1:length(fol_name_cell)
     reqd_controls = {'RtVAvgxh','GenTq','BldPitch1'};
     
     % filtering arguments for controls
-    filter_args.filt_controls = [true,false,false,false];
+    filter_args.filt_controls = [~true,false,false,false];
     filter_args.filt_controls_tf = [1,0,0,0];
     
     % filter flag
     filter_flag = true;
     
-    reqd_outputs = {'TwrBsFxt','TwrBsMxt'};
+    reqd_outputs = {}; %{'TwrBsFxt','TwrBsMxt'};
+    scale_outputs = true;
+    filter_args.filt_outputs =[false,~true,false];
+    filter_args.filt_outputs_tf = [0.5];
     
     % time
     tmin = 0;
@@ -61,13 +64,13 @@ for ifol = 1:length(fol_name_cell)
     add_dx2 = ~false;
     
     % extract
-    sim_details = simulation_details(sim_files,reqd_states,reqd_controls,reqd_outputs,filter_flag,filter_args,add_dx2,tmin,tmax);
+    sim_details = simulation_details(sim_files,reqd_states,reqd_controls,reqd_outputs,scale_outputs,filter_flag,filter_args,add_dx2,tmin,tmax);
     
     split = [0.8,0.2];
     
     % dfsm options
-    dfsm_options.ltype = 'LTI';
-    dfsm_options.ntype = 'GPR';
+    dfsm_options.ltype = 'LPV';
+    dfsm_options.ntype = 'RBF';
     dfsm_options.lsamples = nan;
     dfsm_options.nsamples = 500;
     dfsm_options.sampling_type = 'KM';
@@ -75,17 +78,26 @@ for ifol = 1:length(fol_name_cell)
     dfsm_options.scale_flag = 0;
     
     % extract dfsm
-    dfsm = DFSM(sim_details,dfsm_options);
+    dfsm_mf = DFSM(sim_details,dfsm_options);
+    
 
     ind_test = 9;
 
     time = sim_details(ind_test).time;
     controls = sim_details(ind_test).controls;
     
-    [dfsm,X_cell,~,Y_cell] = test_dfsm(dfsm,sim_details(ind_test),1,~false,~false);
+    [dfsm_mf,X_cell,dx_cell,Y_cell] = test_dfsm(dfsm_mf,sim_details(ind_test),1,~false,~false);
 
-    results_cell{ifol} = {time,controls,X_cell,Y_cell};
-    dfsm_cell{ifol} = dfsm;
+    results_cell = {time,controls,X_cell,dx_cell,Y_cell};
+
+%     ind_test = 2;
+% 
+%     time = sim_details(ind_test).time;
+%     controls = sim_details(ind_test).controls;
+%     
+%     [dfsm_lin,X_cell,dx_cell,Y_cell] = test_dfsm(dfsm_lin,sim_details(ind_test),1,~false,~false);
+%     results_cell{2} = {time,controls,X_cell,dx_cell,Y_cell};
+%     dfsm_cell{ifol} = dfsm_mf;
 
 
 end
@@ -97,8 +109,8 @@ end
 % 
 % end
 
-mat_name = 'DFSM_FOWT_validation_QR.mat';
+mat_name = 'DFSM_FOWT_validation_Final_transition.mat';
 
-save(mat_name,'results_cell')
+%save(mat_name,'results_cell')
 
 return

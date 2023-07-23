@@ -4,7 +4,7 @@ clc; clear; close all;
 
 root_path = fileparts(which('INSTALL_DFSM'));
 data_path = fullfile(root_path,'data');
-fol_name_cell = {'DFSM_MHK'};
+fol_name_cell = {'DFSM_MHK2'};
 
 results_cell = cell(3,1);
 dfsm_cell = cell(3,1);
@@ -37,7 +37,7 @@ for ifol = 1:length(fol_name_cell)
     end
     
     % required states
-    reqd_states = {'PtfmSway','PtfmHeave','PtfmRoll','PtfmPitch','TTDspFA','TTDspSS'};
+    reqd_states = {'PtfmSurge','PtfmSway','PtfmHeave','PtfmRoll','PtfmPitch','PtfmYaw'};
     
     % filtering arguments for states
     filter_args.filt_states = [~true,~true];
@@ -58,18 +58,18 @@ for ifol = 1:length(fol_name_cell)
     % time
     tmin = 0;
     tmax = [];
-    add_dx2 = ~false;
+    add_dx2 = false;
     
     % extract
-    sim_details = simulation_details(sim_files,reqd_states,reqd_controls,reqd_outputs,filter_flag,filter_args,add_dx2,tmin,tmax);
+    sim_details = simulation_details(sim_files,reqd_states,reqd_controls,reqd_outputs,false,filter_flag,filter_args,add_dx2,tmin,tmax);
     
     split = [0.5,0.5];
     
     % dfsm options
-    dfsm_options.ltype = 'LTI';
+    dfsm_options.ltype = '';
     dfsm_options.ntype = 'RBF';
     dfsm_options.lsamples = nan;
-    dfsm_options.nsamples = 500;
+    dfsm_options.nsamples = 50;
     dfsm_options.sampling_type = 'KM';
     dfsm_options.train_test_split = split;
     dfsm_options.scale_flag = 0;
@@ -84,19 +84,17 @@ for ifol = 1:length(fol_name_cell)
     
     [dfsm,X_cell,~,Y_cell] = test_dfsm(dfsm,sim_details(ind_test),1,~false,~false);
 
-    results_cell{ifol} = {time,controls,X_cell,Y_cell};
+    results_cell = {time,controls,X_cell,Y_cell};
     dfsm_cell{ifol} = dfsm;
 
 
 end
 
-% for i = 1:3
-%     time_construct(i) = dfsm_cell{i}.nonlin_sample + dfsm_cell{i}.lin_construct + sum(dfsm_cell{i}.nonlin_construct);
-%     time_sim(i) = dfsm_cell{i}.test_simulation;
-% 
-% 
-% end
 
-mat_name = 'DFSM_FOWT_validation_QR.mat';
+input_train = sim_details(1).controls;
 
-save(mat_name,'results_cell')
+mat_name = 'DFSM_MHK_validation_EAB.mat';
+
+save(mat_name,'results_cell','input_train')
+
+return

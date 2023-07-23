@@ -10,7 +10,7 @@ fname = mfilename('fullpath');
 
 fname = which(fname);
 
-nt = 90; nsamples = 100;
+nt = 90; nsamples = 50;
 fun_name = 'two-link-robot';
 split = [0.7,0.3];
 

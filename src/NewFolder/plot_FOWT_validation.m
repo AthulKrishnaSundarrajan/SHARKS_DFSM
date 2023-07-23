@@ -1,7 +1,7 @@
 clc;clear; close all;
 
 % load result
-load('DFSM_FOWT_validation_QR.mat')
+load('DFSM_FOWT_validation_Final.mat')
 
 C = materialColors;
 
@@ -15,8 +15,8 @@ color_map{2} = red;
 color_map{3} = yellow;
 
 
-fol_name = 'plot_oloc_results/validation/QR';
-saveflag = ~false;
+fol_name = 'plot_oloc_results/validation/EAB';
+saveflag = false;
 
 %% plot wind speed
 
@@ -26,12 +26,14 @@ for i = 1
 hf = figure;
 hf.Color = 'w';
 hold on;
-hf.Position = [1314 469 570 413];
+hf.Position = [131 49 570 413];
 commonFigureProperties
 
+results_cell_ = results_cell;
 
-t = results_cell{1}{1};
-U = results_cell{1}{2};
+
+t = results_cell_{1};
+U = results_cell_{2};
 
 plot(t,U(:,i),'linewidth',linewidth,'color',blue)
 
@@ -58,13 +60,13 @@ for i = 1
     hf = figure;
     hf.Color = 'w';
     hold on;
-    hf.Position = [1314 469 570 413];
+    hf.Position = [314 69 570 413];
     commonFigureProperties
     
+    results_cell_ = results_cell;
     
-    
-    t = results_cell{i}{1};
-    X_cell = results_cell{i}{3};
+    t = results_cell_{1};
+    X_cell = results_cell_{3};
     
     X_act = X_cell{1};
     X_dfsm = X_cell{2};
@@ -98,12 +100,14 @@ for i = 1
 hf = figure;
 hf.Color = 'w';
 hold on;
-hf.Position = [1314 469 570 413];
+hf.Position = [114 46 570 413];
 commonFigureProperties
 
+results_cell_ = results_cell;
 
-t = results_cell{i}{1};
-X_cell = results_cell{i}{3};
+
+t = results_cell_{1};
+X_cell = results_cell_{3};
 
 X_act = X_cell{1};
 X_dfsm = X_cell{2};
@@ -134,12 +138,13 @@ for i = 1
 hf = figure;
 hf.Color = 'w';
 hold on;
-hf.Position = [1314 469 570 413];
+hf.Position = [114 69 570 413];
 commonFigureProperties
 
+results_cell_ = results_cell;
 
-t = results_cell{i}{1};
-Y_cell = results_cell{i}{4};
+t = results_cell_{1};
+Y_cell = results_cell_{5};
 
 Y_act = Y_cell{1};
 Y_dfsm = Y_cell{2};
@@ -161,28 +166,37 @@ if saveflag
 end
 
 %-----------------------------------------------------
+fft_act = fft(Y_act(:,1));
+fft_dfsm = fft(Y_dfsm(:,1));
 
-% hf = figure;
-% hf.Color = 'w';
-% hold on;
-% hf.Position = [1314 469 570 413];
-% commonFigureProperties
-% 
-% plot(t,Y_dfsm(:,1)-Y_act(:,1),'linewidth',linewidth)
-% 
-% xlabel('Time [s]');ylabel('Error [kN]');
-% 
-% %xlabel('Time [s]');ylabel('TwrBsFxt [kN]');
-% taskflag = 'axes'; commonFigureTasks;
-% 
-% if saveflag
-%     savename = ['TwrBsFxt_hist',num2str(i)];
-%     pathpdf = mfoldername(mfilename('fullpath'),fol_name);
-%     filename = fullfile(pathpdf,savename);
-%     str = strcat("export_fig '",filename,"' -pdf");
-%     eval(str)
-% end
-% 
+nt = length(t);
+dt = t(2)-t(1);
+Fs = 1/dt;
+
+P2_act = abs(fft_act/nt);
+P2_dfsm = abs(fft_dfsm/nt);
+
+P1_act = P2_act(1:(nt+1)/2);
+P1_act(2:end-1) = 2*P1_act(2:end-1);
+P1_dfsm = P2_dfsm(1:(nt+1)/2);
+P1_dfsm(2:end-1) = 2*P1_dfsm(2:end-1);
+
+f = Fs*(0:(nt)/2);
+
+hf = figure;
+hf.Color = 'w';
+hold on;
+hf.Position = [131 49 570 413];
+commonFigureProperties
+
+plot(f,P1_dfsm,'linewidth',linewidth,'color',red)
+plot(f,P1_act,'linewidth',linewidth,'color',blue)
+
+taskflag = 'axes'; commonFigureTasks;
+ha.XScale = 'log';
+ha.YScale = 'log';
+
+%xlim([0,5])
 
 end
 %%
@@ -192,20 +206,21 @@ for i = 1
 hf = figure;
 hf.Color = 'w';
 hold on;
-hf.Position = [1314 469 570 413];
+hf.Position = [131 49 570 413];
 commonFigureProperties
 
+results_cell_ = results_cell{i};
 
-t = results_cell{i}{1};
-Y_cell = results_cell{i}{4};
+t = results_cell_{1};
+Y_cell = results_cell_{5};
 
 Y_act = Y_cell{1};
 Y_dfsm = Y_cell{2};
 
 
-plot(t,Y_dfsm(:,4),'linewidth',linewidth,'color',red)
-plot(t,Y_act(:,4),'linewidth',linewidth,'color',blue)
-plot(t,Y_dfsm(:,4)-Y_act(:,4),'linewidth',linewidth,'color','k')
+plot(t,Y_dfsm(:,2),'linewidth',linewidth,'color',red)
+plot(t,Y_act(:,2),'linewidth',linewidth,'color',blue)
+plot(t,Y_dfsm(:,2)-Y_act(:,2),'linewidth',linewidth,'color','k')
 
 xlabel('Time [s]');ylabel('TwrBsMxt [kNm]');
 taskflag = 'axes'; commonFigureTasks;
@@ -218,25 +233,36 @@ if saveflag
     eval(str)
 end
 
-%-----------------------------------------------------
-% hf = figure;
-% hf.Color = 'w';
-% hold on;
-% hf.Position = [1314 469 570 413];
-% commonFigureProperties
-% 
-% plot(t,Y_dfsm(:,4)-Y_act(:,4),'linewidth',linewidth)
-% 
-% xlabel('Time [s]');ylabel('Error [kNm]');
-% taskflag = 'axes'; commonFigureTasks;
-% 
-% if saveflag
-%     savename = ['TwrBsMxt_hist',num2str(i)];
-%     pathpdf = mfoldername(mfilename('fullpath'),fol_name);
-%     filename = fullfile(pathpdf,savename);
-%     str = strcat("export_fig '",filename,"' -pdf");
-%     eval(str)
-% end
+fft_act = fft(Y_act(:,2));
+fft_dfsm = fft(Y_dfsm(:,2));
+
+nt = length(t);
+dt = t(2)-t(1);
+Fs = 1/dt;
+
+P2_act = abs(fft_act/nt);
+P2_dfsm = abs(fft_dfsm/nt);
+
+P1_act = P2_act(1:(nt+1)/2);
+P1_act(2:end-1) = 2*P1_act(2:end-1);
+P1_dfsm = P2_dfsm(1:(nt+1)/2);
+P1_dfsm(2:end-1) = 2*P1_dfsm(2:end-1);
+
+f = Fs*(0:(nt)/2);
+
+hf = figure;
+hf.Color = 'w';
+hold on;
+hf.Position = [131 49 570 413];
+commonFigureProperties
+
+plot(f,P1_dfsm,'linewidth',linewidth,'color',red)
+plot(f,P1_act,'linewidth',linewidth,'color',blue)
+
+taskflag = 'axes'; commonFigureTasks;
+ha.XScale = 'log';
+ha.YScale = 'log';
+
 
 
 end
@@ -248,12 +274,14 @@ for i = 1
 hf = figure;
 hf.Color = 'w';
 hold on;
-hf.Position = [1314 469 570 413];
+hf.Position = [114 49 570 413];
 commonFigureProperties
 
+results_cell_ = results_cell{i};
 
-t = results_cell{i}{1};
-Y_cell = results_cell{i}{4};
+
+t = results_cell_{1};
+Y_cell = results_cell_{5};
 
 Y_act = Y_cell{1};
 Y_dfsm = Y_cell{2};
@@ -273,25 +301,8 @@ if saveflag
     str = strcat("export_fig '",filename,"' -pdf");
     eval(str)
 end
-%--------------------------------------------------
-% hf = figure;
-% hf.Color = 'w';
-% hold on;
-% hf.Position = [1314 469 570 413];
-% commonFigureProperties
-% 
-% plot(t,Y_dfsm(:,3)-Y_act(:,3),'linewidth',linewidth)
-% 
-% xlabel('Time [s]');ylabel('Error');
-% taskflag = 'axes'; commonFigureTasks;
-% 
-% if saveflag
-%     savename = ['rt_aero_cp_hist',num2str(i)];
-%     pathpdf = mfoldername(mfilename('fullpath'),fol_name);
-%     filename = fullfile(pathpdf,savename);
-%     str = strcat("export_fig '",filename,"' -pdf");
-%     eval(str)
-% end
+
+
 
 
 

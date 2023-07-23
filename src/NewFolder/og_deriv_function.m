@@ -64,6 +64,8 @@ function dx = og_deriv_function(t,x,u_fun,fun_name)
                   x4^2/x1-1/x1^2+u1;
                   -x4*x3/x1+u2];
 
+        case ''
+
     end
 
 

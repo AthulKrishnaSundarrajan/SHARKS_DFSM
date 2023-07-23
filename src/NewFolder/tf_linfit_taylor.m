@@ -15,14 +15,14 @@ fun_name = 'two-link-robot';
 split = [1,0];
 
 % run simulation and get results
-nfac = 4;
-fac_ = [-2,-3,-4,-6];%logspace(-2,-4,nfac); %[0.05,0.001,0.0001];
+nfac = 5;
+fac_ = linspace(-2,-6,nfac); %[0.05,0.001,0.0001];
 fac = 10.^fac_;
 
 
-x0 = [0,0,0.5,0];
+x0 = [0,0,pi,0]';
 C_ = [0 0 1 0;
-    0 0 0 1];
+      0 0 0 1];
 D = zeros(2);
 
 dfsm_options.ltype = 'LTI';
@@ -33,7 +33,7 @@ dfsm_options.train_test_split = split;
 dfsm_options.scale_flag = ~true;
 
 
-saveflag = ~false;
+saveflag = false;
 fol_name = 'plots_linear_validation';
 x_lim = [0,t_f];
 
@@ -55,7 +55,7 @@ dx = [x1_d;x2_d;x3_d;x4_d];
 x = [x1;x2;x3;x4];
 u = [u1;u2];
 
-x0 = [0;0;0.5;0];
+%x0 = [0;0;0.5;0];
 u0 = [0;0];
 
 I0 = [u0;x0];
@@ -110,6 +110,8 @@ end
 
 
 %-----------------------------------------------------------
+
+ind_pole = 3;
 for ix = 1
 
     for iy = 1
