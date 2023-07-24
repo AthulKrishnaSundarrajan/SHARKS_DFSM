@@ -9,8 +9,8 @@ nsamples = length(dx_cell_lin);
 
 %ind = randsample(1:nsamples,1);
 
-saveflag = false;
-fol_name = 'multi-fid-validation/new';
+saveflag = ~false;
+fol_name = 'multi-fid-validation/new_model';
 
 %--------------------------------------------------------------------------
 % plot controls
@@ -157,7 +157,7 @@ end
 
 %------------------------------------------------------------------------
 % plot multifidelity vs actual
-legend_entries = {'$\hat{f}_{\textrm{linfit}}$','$\hat{f}_{\textrm{multi-fid}}$','$f$'};
+legend_entries = {'$\hat{f}_{\textrm{L}}$','$\hat{f}_{\textrm{MF}}$','$f$'};
 for idx = 1:4
 
     hf = figure;
@@ -174,12 +174,13 @@ for idx = 1:4
     plot(time_,dx_act(:,idx),'linewidth',1.5,'color',yellow)
     
     xlabel('Time [s]');ylabel(['$\dot{\xi}_',num2str(idx),'$']);
+    %xlim([0,0.])
 
     taskflag = 'axes';commonFigureTasks
 
     legend(legend_entries);
-fontlegend = 15; nCol = 3;lcn = 'best';
-taskflag = 'legend';commonFigureTasks;
+    fontlegend = 15; nCol = 3;lcn = 'best';
+    taskflag = 'legend';commonFigureTasks;
 
     if saveflag
         savename = ['dx_MFact_',num2str(idx)];
@@ -236,12 +237,13 @@ for idx = 1:4
     fontlabel = fontlabel + 2;
     fonttick = fonttick+2;
     plot(time_x,X_lin(:,idx),'linewidth',1.5,'color',blue)
-    plot(time_x,X_mf(:,idx),'linewidth',1.5,'color',red)
     plot(time_x,X_nl(:,idx),'linewidth',1.5,'color',black)
+    plot(time_x,X_mf(:,idx),'linewidth',1.5,'color',red)
+    
     plot(time_x,X_act(:,idx),'linewidth',1.5,'color',yellow)
 
     xlabel('Time [s]');ylabel(['$\xi_',num2str(idx),'$']);
-
+    %xlim([0,0.5])
     taskflag = 'axes';commonFigureTasks
 
     if saveflag
@@ -258,7 +260,7 @@ for idx = 1:4
 end
 
 % plot legend
-legend_entries = {'$\hat{f}_{\textrm{linfit}}$','$\hat{f}_{\textrm{multi-fid}}$','$\hat{f}_{\textrm{single-fid}}$','$f$'};
+legend_entries = {'$\hat{f}_{\textrm{L}}$','$\hat{f}_{\textrm{N}}$','$\hat{f}_{\textrm{MF}}$','$f$'};
 
 %----------------------
 hf2 = copyfig(hf);
@@ -321,7 +323,7 @@ for idx = 1:4
     h = histogram(error_trad(:,idx),'NumBins',nbins,'FaceAlpha',0.7,'FaceColor',black,'Normalization','count');
     histogram(error_MF(:,idx),'NumBins',nbins,'FaceAlpha',0.7,'FaceColor',red,'Normalization','count')
     xlabel(x_label); ylabel('Count')
-    xlim(x_lim{idx})
+    %xlim(x_lim{idx})
 
     taskflag = 'axes'; commonFigureTasks;
 
@@ -337,7 +339,7 @@ end
 
 %--------------------------------------------------------------------------
 hf2 = copyfig(hf);
-hf2.Position = [263.4000 417.8000 759.2000 70.4000];
+hf2.Position = [263.4000 417.8000 769.2000 70.4000];
 h = findall(hf2,'type','histogram');
 close(hf)
 axis off; 
@@ -348,7 +350,7 @@ for i = 1:length(h)
 end
 
 % legend
-legend({'$e_{\textrm{single-fid}}$','$e_{\textrm{multi-fid}}$'})
+legend({'$e_{\textrm{L}}$','$e_{\textrm{NL}}$','$e_{\textrm{MF}}$'})
 fontlegend = 22; nCol = 5;lcn = 'best';
 taskflag = 'legend';commonFigureTasks;
 

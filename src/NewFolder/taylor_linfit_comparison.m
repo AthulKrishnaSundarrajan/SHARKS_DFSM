@@ -4,20 +4,21 @@ clc; clear; close all;
 rng(4357)
 
 % define parameters
-t0 = 0; t_f = 3;
+t0 = 0; t_f = 1;
 fname = mfilename('fullpath');
 
 
 fname = which(fname);
 
 nt = 90; nsamples = 100;
-fun_name = 'two-link-robot';
+fun_name = 'two-link-robot2';
 split = [1,0];
 
 % run simulation and get results
 
-fac = 0.001; %logspace(-2,0,nfac);
-x0 = [0,0,0.5,0];
+fac = 1e-1; %logspace(-2,0,nfac);
+x0 = [deg2rad(45),0,deg2rad(-30),0];
+u0 = [26.1239,9.4757];
 
 dfsm_options.ltype = 'LTI';
 dfsm_options.ntype = '';
@@ -27,7 +28,7 @@ dfsm_options.train_test_split = split;
 dfsm_options.scale_flag = ~true;
 
 
-sim_details = run_simulation(t0,t_f,nt,nsamples,fun_name,fac,x0);
+sim_details = run_simulation(t0,t_f,nt,nsamples,fun_name,fac,x0,u0);
 
 train_simulations_ind = 1:floor(nsamples*0.8);
 train_simulations = sim_details(train_simulations_ind);
@@ -39,51 +40,68 @@ dfsm = DFSM(train_simulations,dfsm_options);
 
 [~,~,~,inputs,~,~] = sample_data(sim_details,'KM',nan);
 
-saveflag = ~false;
-fol_name = 'plots_linear_validation/new';
+saveflag = false;
+fol_name = 'plots_linear_validation/new_ex';
 x_lim = [0,t_f];
 
 
-%-------------------------------------------------
-% define symbolic variables
-syms x1 x2 x3 x4 u1 u2 X1 X2 X3 X4 U1 U2 real
+% %-------------------------------------------------
+% % define symbolic variables
+% syms x1 x2 x3 x4 u1 u2 X1 X2 X3 X4 U1 U2 real
+% 
+% % derivative function
+% x1_d = ((sin(x3).*(9/4*cos(x3).*x1.^2+2*x2.^2) + 4/3*(u1-u2) - 3/2*cos(x3).*u2 )./ (31/36 + 9/4*sin(x3).^2) );
+% x2_d = (-( sin(x3).*(9/4*cos(x3).*x2.^2+7/2*x1.^2) - 7/3*u2 + 3/2*cos(x3).*(u1-u2) )./ (31/36 + 9/4*sin(x3).^2) );
+% x3_d = ( x2-x1 ); 
+% x4_d = ( x1 );
+% 
+% % outputs
+% dx = [x1_d;x2_d;x3_d;x4_d];
+% 
+% % inputs
+% x = [x1;x2;x3;x4];
+% u = [u1;u2];
+% 
+% x0 = [0;0;0.5;0];
+% u0 = [0;0];
+% 
+% I0 = [u0;x0];
+% 
+% 
+% % inputs
+% I = [u;x];
+% I_ = [U1;U2;X1;X2;X3;X4];
+% 
+% % evaluate jacobian
+% L_taylor = jacobian(dx,I);
+% 
+% % substitute value
+% L_taylor = double(subs(L_taylor,I,I0));
+% 
+% %--------------------------------------------------------------------------
+% 
+% % create a dfsm model with the taylor series expansion as the linear model
+% 
+% A_taylor = L_taylor(:,3:end);
+% B_taylor = L_taylor(:,1:2);
 
-% derivative function
-x1_d = ((sin(x3).*(9/4*cos(x3).*x1.^2+2*x2.^2) + 4/3*(u1-u2) - 3/2*cos(x3).*u2 )./ (31/36 + 9/4*sin(x3).^2) );
-x2_d = (-( sin(x3).*(9/4*cos(x3).*x2.^2+7/2*x1.^2) - 7/3*u2 + 3/2*cos(x3).*(u1-u2) )./ (31/36 + 9/4*sin(x3).^2) );
-x3_d = ( x2-x1 ); 
-x4_d = ( x1 );
+%--------------------------------------
+% linearized matrices
+A_taylor =  [0,1.0000,0,0;
+    17.8320,0,-3.3656,0
+    0,0,0,1.0000;
+  -30.0624,0,16.4148,0];
 
-% outputs
-dx = [x1_d;x2_d;x3_d;x4_d];
-
-% inputs
-x = [x1;x2;x3;x4];
-u = [u1;u2];
-
-x0 = [0;0;0.5;0];
-u0 = [0;0];
-
-I0 = [u0;x0];
+% A_taylor =  [0,1.0000,0,0;
+%     17.8320,0,-3.0024,0
+%     0,0,0,1.0000;
+%   -30.0624,0,10.456,0];
 
 
-% inputs
-I = [u;x];
-I_ = [U1;U2;X1;X2;X3;X4];
+B_taylor = [0,0;1.2514,-2.4337;0,0;-2.4337,6.5512];
 
-% evaluate jacobian
-L_taylor = jacobian(dx,I);
-
-% substitute value
-L_taylor = double(subs(L_taylor,I,I0));
-
-%--------------------------------------------------------------------------
-
-% create a dfsm model with the taylor series expansion as the linear model
-
-A_taylor = L_taylor(:,3:end);
-B_taylor = L_taylor(:,1:2);
-
+C_ = [1 0 0 0 ; 0 0 1 0];
+D = zeros(2);
 
 L_linfit = (dfsm.deriv.AB)';
 
@@ -99,7 +117,7 @@ B_linfit = L_linfit(:,1:2);
 ind_test = randsample(1:0.2*nsamples,1);
 
 dx_act = dx_taylor{ind_test,1};
-dx_taylor1 = dx_taylor{ind_test,2};
+dx_taylor1 = (dx_taylor{ind_test,2});
 dx_linfit1 = dx_linfit{ind_test,2};
 
 
@@ -166,10 +184,10 @@ if saveflag
 end
 
 %-------------------------------------------------------------------------
-
-C_ = [0 0 1 0;
-    0 0 0 1];
-D = zeros(2);
+% 
+% C_ = [0 0 1 0;
+%     0 0 0 1];
+% D = zeros(2);
 
 % A_linfit(abs(A_linfit)<1e-2) = 0;
 % B_linfit(abs(B_linfit)<1e-2) = 0;
@@ -378,7 +396,7 @@ function dx_taylor = test_taylor(A,B,test_simulations,x0,u0)
         controls = test_simulations(i).controls;
         state_derivatives = test_simulations(i).state_derivatives;
 
-        dx = (states-x0' )*A' + (controls-u0')*B';
+        dx = (states-x0)*A' + (controls-u0)*B';
 
         dx_taylor{i,1} = state_derivatives;
         dx_taylor{i,2} = dx;

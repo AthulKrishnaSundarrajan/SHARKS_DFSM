@@ -4,7 +4,7 @@ clc; clear; close all;
 
 root_path = fileparts(which('INSTALL_DFSM'));
 data_path = fullfile(root_path,'data');
-fol_name = 'DFSM_1p6';
+fol_name = 'DFSM_transition_10';
 sim_path = fullfile(data_path,fol_name);
 
 % file names
@@ -47,7 +47,13 @@ filter_args.filt_controls_tf = [1,0,0];
 % filter flag
 filter_flag = true;
 
-reqd_outputs = {'TwrBsFxt'};
+
+reqd_outputs =  {'TwrBsFxt','TwrBsMyt'};
+scale_outputs = true;
+filter_args.filt_outputs =[false,~true,false];
+filter_args.filt_outputs_tf = [0.5];
+
+
 
 % time
 tmin = 0;
@@ -55,9 +61,12 @@ tmax = [];
 add_dx2 = true;
 
 % extract
-sim_details = simulation_details(sim_files,reqd_states,reqd_controls,reqd_outputs,filter_flag,filter_args,add_dx2,tmin,tmax);
+%sim_details = simulation_details(sim_files,reqd_states,reqd_controls,reqd_outputs,filter_flag,filter_args,add_dx2,tmin,tmax);
 
-
+sim_details = simulation_details(sim_files,reqd_states,reqd_controls,reqd_outputs,scale_outputs,filter_flag,filter_args,add_dx2,tmin,tmax);
+    
+    %split = [0.8,0.2];
+    
 split = [0.8,0.2];
 
 
@@ -75,17 +84,23 @@ dfsm = DFSM(sim_details,dfsm_options);
 
 % linear part
 AB = dfsm.deriv.AB;
+CD = dfsm.op.CD;
 
 % nonlinear part
 nonlin = dfsm.deriv.nonlin;
 error_ind = dfsm.deriv.error_ind;
 
+nonlin_op = dfsm.op.nonlin;
+error_ind_op = dfsm.op.error_ind;
+
 % number of states and controls
 nx = sim_details(1).nstates;
 nu = sim_details(1).ncontrols;
+ny = sim_details(1).noutputs;
 
 % change the form into something DTQP can use
-f = construct_function(AB,nonlin,error_ind,dfsm_options.ntype,nx,nu);
+f = construct_function(AB,nonlin,error_ind,dfsm_options.ntype,'deriv',nx,nu,ny,[]);
+f_con = construct_function(CD,nonlin_op,error_ind_op,dfsm_options.ntype,'op',nx,nu,ny,[5,4]);
 
 % opts
 opts.general.displevel = 2;
@@ -105,16 +120,23 @@ element.dynamics = []; % only needs to have the field to work
 dyn.f = f;
 setup.internalinfo.dyn = dyn;
 
+element.g = [];
+cin.Ilin = [];
+cin.f = f_con;
+cin.pathboundary = [true;true];
+setup.internalinfo.cin = cin;
+
 nsamples = length(sim_details);
 ind =  0.8*nsamples+1:nsamples;
 
-pitch_pen = [7,7];
+pitch_pen = [7];
 
 ntest = length(ind);
 
 X_cell = cell(ntest,1);
 time_cell = cell(ntest,1);
 U_cell = cell(ntest,1);
+Y_cell = cell(ntest,1);
 
 
 
@@ -195,7 +217,7 @@ for i = 1:ntest
     
     % states upper bound
     UB(ix).right = 2;
-    UB(ix).matrix = [7,7.23457,inf,inf];
+    UB(ix).matrix = [pitch_pen(i),7.23457,inf,inf];
     
     % states lower bound
     LB(ix).right = 2;
@@ -230,6 +252,7 @@ for i = 1:ntest
     X_cell{i} = X;
     U_cell{i} = U;
 
+    
     %close all;
     
     %% plots
@@ -264,12 +287,39 @@ for i = 1:ntest
         %ylim(state_bounds{idx})
         ylabel(sim_details(1).state_names{idx})
     end
+
+    if isfield(setup.internalinfo,'cin')
+        inputs = [U,X];
+
+        Y = evaluate_dfsm(inputs,dfsm,'output');Y = Y';
+        Y_cell{i} = Y;
+
+        % plot
+        hf = figure;
+        hf.Color = 'w';
+        hold on;
+        sgtitle('Output')
+        
+
+        for idy = 1:ny
+            subplot(ny,1,idy)
+            hold on;
+            plot(T,Y(:,idy),'LineWidth',1)
+            xlabel('Time [s]')
+            ylabel(sim_details(1).output_names{idy})
+        end
+
+    else
+        Y_cell = [];
+
+    end
+
  
 end
 
-mat_name = 'DFSM_oloc_results_transition_test7.mat';
+mat_name = 'DFSM_oloc_results_transition_test72.mat';
 
-save(mat_name,"time_cell",'X_cell','U_cell')
+save(mat_name,"time_cell",'X_cell','U_cell','Y_cell')
 return
 
 

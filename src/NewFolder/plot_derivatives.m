@@ -2,10 +2,10 @@ clc;clear; close all;
 
 % set seed
 rng(4357)
-fun_name = 'two-link-robot';
+fun_name = 'two-link-robot2';
 
 % define parameters
-t0 = 0; tf = 3;
+t0 = 0; tf = 0.5;
 fname = mfilename('fullpath');
 
 
@@ -16,7 +16,8 @@ nt = 90; nsamples = 100;
 % run simulation and get results
 fac = 1;
 x0 = zeros(1,4);
-sim_details = run_simulation(t0,tf,nt,nsamples,fun_name,fac,x0);
+u0 = [0,0];
+sim_details = run_simulation(t0,tf,nt,nsamples,fun_name,fac,x0,u0);
 
 split = [0.8,0.2];
 
@@ -24,7 +25,7 @@ test_simulations_ind = floor(nsamples*0.8+1):nsamples;
 test_simulations = sim_details(test_simulations_ind);
 
 
-num_samples = [10,50,100,200,500,1000];
+num_samples = [500];
 construct_time = cell(length(num_samples),2);
 
 for i = 1:length(num_samples)

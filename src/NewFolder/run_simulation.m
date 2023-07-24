@@ -1,4 +1,4 @@
-function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name,fac,x0)
+function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name,fac,x0,u0)
 
     % generate time
     time = linspace(t0,tf,nt);
@@ -50,6 +50,22 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name,fac,x0)
             x0 = [1,0,0,1];
             samp_type = 'freq-excite';
 
+        case 'two-link-robot2'
+
+            state_names = {'x1','x2','x3','x4'};
+            control_names = {'u1','u2'};
+            nx = 4;
+
+            %umin = [-1,-1];umax = [1,1];
+            umax = fac.*[1,1];umin = -umax;
+            umax = umax+u0;umin = umin+u0;
+            %xmax = fac.*ones(1,nx); xmin = -xmax;
+            
+            xmax = fac.*ones(1,nx); xmin = -xmax;
+            xmax = xmax + x0;xmin = xmin+x0;
+
+            samp_type = 'random';
+
 
     end
     
@@ -92,8 +108,7 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name,fac,x0)
         u_fun = u_samples{isamples};
         
         % run simulation
-        [T,X] = ode45(@(t,y)og_deriv ...
-            _function(t,y,u_fun,fun_name),[t0,tf],nY0(:,isamples),options);
+        [T,X] = ode45(@(t,y)og_deriv_function(t,y,u_fun,fun_name),[t0,tf],nY0(:,isamples),options);
 
         % plot states
         %plot(X(:,1),X(:,2),'.','markersize',5)
@@ -101,7 +116,7 @@ function sim_details = run_simulation(t0,tf,nt,nsamples,fun_name,fac,x0)
         % evaluate control
         U = u_fun(T);
         
-        if strcmpi(fun_name,'two-link-robot')
+        if strcmpi(fun_name,'two-link-robot2')
             U = U';
         end
     

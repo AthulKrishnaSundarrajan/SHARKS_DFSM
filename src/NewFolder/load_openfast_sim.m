@@ -57,7 +57,7 @@ function sim_detail = load_openfast_sim(sim_name,reqd_states,reqd_controls,reqd_
 
         if scale_outputs
 
-            scale_fac = 10.^(floor(log10(mean(outputs))));
+            scale_fac = 10.^(floor(log10(abs(mean(outputs)))));
             outputs = outputs./scale_fac;
 
 

@@ -4,9 +4,9 @@ clc; clear; close all;
 
 root_path = fileparts(which('INSTALL_DFSM'));
 data_path = fullfile(root_path,'data');
-fol_name_cell = {'DFSM_transition_10'};
+fol_name_cell = {'DFSM_belowrated_10','DFSM_transition_10','DFSM_rated_10'};
 
-results_cell = cell(2,1);
+results_cell = cell(3,1);
 dfsm_cell = cell(2,1);
 
 for ifol = 1:length(fol_name_cell)
@@ -47,13 +47,13 @@ for ifol = 1:length(fol_name_cell)
     reqd_controls = {'RtVAvgxh','GenTq','BldPitch1'};
     
     % filtering arguments for controls
-    filter_args.filt_controls = [~true,false,false,false];
-    filter_args.filt_controls_tf = [1,0,0,0];
+    filter_args.filt_controls = [~true,false,false];
+    filter_args.filt_controls_tf = [1,0,0];
     
     % filter flag
     filter_flag = true;
     
-    reqd_outputs = {}; %{'TwrBsFxt','TwrBsMxt'};
+    reqd_outputs =  {'TwrBsFxt','TwrBsMyt'};
     scale_outputs = true;
     filter_args.filt_outputs =[false,~true,false];
     filter_args.filt_outputs_tf = [0.5];
@@ -72,7 +72,7 @@ for ifol = 1:length(fol_name_cell)
     dfsm_options.ltype = 'LPV';
     dfsm_options.ntype = 'RBF';
     dfsm_options.lsamples = nan;
-    dfsm_options.nsamples = 500;
+    dfsm_options.nsamples = 200;
     dfsm_options.sampling_type = 'KM';
     dfsm_options.train_test_split = split;
     dfsm_options.scale_flag = 0;
@@ -85,10 +85,12 @@ for ifol = 1:length(fol_name_cell)
 
     time = sim_details(ind_test).time;
     controls = sim_details(ind_test).controls;
+    plot_flag = true;
+    sim_flag = ~false;
     
-    [dfsm_mf,X_cell,dx_cell,Y_cell] = test_dfsm(dfsm_mf,sim_details(ind_test),1,~false,~false);
+    [dfsm_mf,X_cell,dx_cell,Y_cell] = test_dfsm(dfsm_mf,sim_details(ind_test),1,plot_flag,sim_flag);
 
-    results_cell = {time,controls,X_cell,dx_cell,Y_cell};
+    results_cell{ifol} = {time,controls,X_cell,dx_cell,Y_cell};
 
 %     ind_test = 2;
 % 
@@ -109,8 +111,8 @@ end
 % 
 % end
 
-mat_name = 'DFSM_FOWT_validation_Final_transition.mat';
+mat_name = 'DFSM_FOWT_validation_Final.mat';
 
-%save(mat_name,'results_cell')
+save(mat_name,'results_cell')
 
 return

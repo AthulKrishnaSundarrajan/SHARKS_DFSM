@@ -64,7 +64,7 @@ function dx = evaluate_dfsm(inputs,dfsm,fun_type)
                if error_ind(i)
                    rbfi = nonlin{i};
 
-                   dx_nonlin(i,:) = rbfi(inputs');
+                   dx_nonlin(i,:) = sim(rbfi,inputs');
                end
 
            end

@@ -2,15 +2,15 @@ clc; clear; close all;
 
 % load results
 results1 = load('DFSM_oloc_results_transition_test7.mat');
-results2 = load('DFSM_oloc_results_transition_test5.mat');
+results2 = load('DFSM_oloc_results_transition_test72.mat');
 
 fol_name = 'plot_oloc_results/transition2';
-saveflag = ~false;
+saveflag = false;
 
 ind = 1;
-time_cell = {results1.time_cell{ind},results2.time_cell{ind}};
-U_cell = {results1.U_cell{ind},results2.U_cell{ind}};
-X_cell = {results1.X_cell{ind},results2.X_cell{ind}};
+time_cell = results1.time_cell;
+U_cell = results1.U_cell;
+X_cell = results1.X_cell;
 
 
 ntests = length(time_cell);

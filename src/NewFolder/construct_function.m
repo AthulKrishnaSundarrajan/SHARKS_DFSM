@@ -1,19 +1,30 @@
-function f = construct_function(AB,nonlin,error_ind,fun_type,nx,nu)
+function f = construct_function(AB,nonlin,error_ind,fun_type,type,nx,nu,ny,con)
 
 % initialize
-f = cell(nx,1);
+
+if strcmpi(type,'deriv')
+    f = cell(nx,1);
+
+    con_val = zeros(nx,1);
+elseif strcmpi(type ,'op')
+    f = cell(ny,1);
+
+    con_val = con;
+end
+
+nf = length(f);
 
 % calculate the number of inputs
 ninputs = nx+nu;
 
 % loop through and construct anonymous functions
-for ix = 1:nx
+for ind_f = 1:nf
 
     % extract
-    nx_fun = nonlin{ix};
+    nx_fun = nonlin{ind_f};
     
     % construct function
-    if error_ind(ix)
+    if error_ind(ind_f)
 
         switch fun_type
 
@@ -23,16 +34,16 @@ for ix = 1:nx
 
                     case 'function_handle'
 
-                            f{ix} = @(t,param,UYP) 
+                            %f{ix} = @(t,param,UYP) 
 
                     case 'double'
                         if ~isempty(AB)
         
-                            f{ix} = @(t,param,UYP) UYP(:,1:ninputs)*AB(:,ix) + predict(nx_fun,UYP(:,1:ninputs));
+                            f{ind_f} = @(t,param,UYP) UYP(:,1:ninputs)*AB(:,ind_f) + predict(nx_fun,UYP(:,1:ninputs)) - con_val(ind_f);
         
                         else
         
-                            f{ix} = @(t,param,UYP) predict(nx_fun,UYP(:,1:ninputs));
+                            f{ind_f} = @(t,param,UYP) predict(nx_fun,UYP(:,1:ninputs))- con_val(ind_f);
         
                         end
 
@@ -42,16 +53,16 @@ for ix = 1:nx
 
                 if ~isempty(AB)
 
-                    f{ix} = @(t,param,UYP) UYP(:,1:ninputs)*AB(:,ix) + (nx_fun((UYP(:,1:ninputs))')');
+                    f{ind_f} = @(t,param,UYP) UYP(:,1:ninputs)*AB(:,ind_f) + (nx_fun((UYP(:,1:ninputs))')')- con_val(ind_f);
 
                 else
 
-                    f{ix} = @(t,param,UYP)(nx_fun((UYP(:,1:ninputs))')');
+                    f{ind_f} = @(t,param,UYP)(nx_fun((UYP(:,1:ninputs))')')- con_val(ind_f);
                 end
         end
 
     else 
-        f{ix} = @(t,param,UYP) UYP(:,1:ninputs)*AB(:,ix);
+        f{ind_f} = @(t,param,UYP) UYP(:,1:ninputs)*AB(:,ind_f)- con_val(ind_f);
     end
 
 

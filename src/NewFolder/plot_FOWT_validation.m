@@ -8,6 +8,7 @@ C = materialColors;
 blue = C.blue(9,:);
 yellow = C.yellow(10,:);
 red = C.red(7,:);
+grey = C.grey(7,:);
 
 color_map = cell(2,1);
 color_map{1} = blue;
@@ -15,27 +16,27 @@ color_map{2} = red;
 color_map{3} = yellow;
 
 
-fol_name = 'plot_oloc_results/validation/EAB';
-saveflag = false;
+fol_name = 'plot_oloc_results/validation/Final';
+saveflag = ~false;
 
 %% plot wind speed
 
 
 
-for i = 1
+for i = 1:3
 hf = figure;
 hf.Color = 'w';
 hold on;
 hf.Position = [131 49 570 413];
 commonFigureProperties
 
-results_cell_ = results_cell;
+results_cell_ = results_cell{i};
 
 
 t = results_cell_{1};
 U = results_cell_{2};
 
-plot(t,U(:,i),'linewidth',linewidth,'color',blue)
+plot(t,U(:,1),'linewidth',linewidth,'color',blue)
 
 xlabel('Time [s]');ylabel('Wind Speed [m/s]');
 taskflag = 'axes'; commonFigureTasks;
@@ -55,7 +56,7 @@ end
 %% plot platform pitch
 
 
-for i = 1
+for i = 1:3
 
     hf = figure;
     hf.Color = 'w';
@@ -63,7 +64,7 @@ for i = 1
     hf.Position = [314 69 570 413];
     commonFigureProperties
     
-    results_cell_ = results_cell;
+    results_cell_ = results_cell{i};
     
     t = results_cell_{1};
     X_cell = results_cell_{3};
@@ -73,7 +74,7 @@ for i = 1
     
     plot(t,X_dfsm(:,1),'linewidth',linewidth,'color',red)
     plot(t,X_act(:,1),'linewidth',linewidth,'color',blue)
-    plot(t,X_dfsm(:,1)-X_act(:,1),'linewidth',linewidth,'color','k')
+    plot(t,X_dfsm(:,1)-X_act(:,1),'linewidth',linewidth/2,'color',grey)
     
 
     xlabel('Time [s]');ylabel('Platform Pitch [deg]');
@@ -94,7 +95,7 @@ end
 %% plot gen speed
 
 
-for i = 1
+for i = 1:3
 
 
 hf = figure;
@@ -103,7 +104,7 @@ hold on;
 hf.Position = [114 46 570 413];
 commonFigureProperties
 
-results_cell_ = results_cell;
+results_cell_ = results_cell{i};
 
 
 t = results_cell_{1};
@@ -115,7 +116,7 @@ X_dfsm = X_cell{2};
 
     plot(t,X_dfsm(:,2),'linewidth',linewidth,'color',red)
     plot(t,X_act(:,2),'linewidth',linewidth,'color',blue)
-    plot(t,X_dfsm(:,2)-X_act(:,2),'linewidth',linewidth,'color','k')
+    plot(t,X_dfsm(:,2)-X_act(:,2),'linewidth',linewidth/2,'color',grey)
 
 xlabel('Time [s]');ylabel('Generator Speed [rad/s]');
 taskflag = 'axes'; commonFigureTasks;
@@ -132,7 +133,7 @@ end
 end
 
 %%
-for i = 1
+for i = 1:3
 
 
 hf = figure;
@@ -141,7 +142,7 @@ hold on;
 hf.Position = [114 69 570 413];
 commonFigureProperties
 
-results_cell_ = results_cell;
+results_cell_ = results_cell{i};
 
 t = results_cell_{1};
 Y_cell = results_cell_{5};
@@ -152,13 +153,13 @@ Y_dfsm = Y_cell{2};
 
     plot(t,Y_dfsm(:,1),'linewidth',linewidth,'color',red)
     plot(t,Y_act(:,1),'linewidth',linewidth,'color',blue)
-    plot(t,Y_dfsm(:,1)-Y_act(:,1),'linewidth',linewidth,'color','k')
+    plot(t,Y_dfsm(:,1)-Y_act(:,1),'linewidth',linewidth/2,'color',grey)
 
 xlabel('Time [s]');ylabel('TwrBsFxt [kN]');
 taskflag = 'axes'; commonFigureTasks;
 
 if saveflag
-    savename = ['TwrBsFxt',num2str(i)];
+    savename = ['TwrBsFxt_',num2str(i)];
     pathpdf = mfoldername(mfilename('fullpath'),fol_name);
     filename = fullfile(pathpdf,savename);
     str = strcat("export_fig '",filename,"' -pdf");
@@ -183,24 +184,25 @@ P1_dfsm(2:end-1) = 2*P1_dfsm(2:end-1);
 
 f = Fs*(0:(nt)/2);
 
-hf = figure;
-hf.Color = 'w';
-hold on;
-hf.Position = [131 49 570 413];
-commonFigureProperties
-
-plot(f,P1_dfsm,'linewidth',linewidth,'color',red)
-plot(f,P1_act,'linewidth',linewidth,'color',blue)
-
-taskflag = 'axes'; commonFigureTasks;
-ha.XScale = 'log';
-ha.YScale = 'log';
-
-%xlim([0,5])
+% hf = figure;
+% hf.Color = 'w';
+% hold on;
+% hf.Position = [131 49 570 413];
+% commonFigureProperties
+% 
+% plot(f,P1_dfsm,'linewidth',linewidth,'color',red)
+% plot(f,P1_act,'linewidth',linewidth,'color',blue)
+% 
+% taskflag = 'axes'; commonFigureTasks;
+% ha.XScale = 'log';
+% ha.YScale = 'log';
+% xlim([0,10^3])
+% 
+% %xlim([0,5])
 
 end
 %%
-for i = 1
+for i = 1:3
 
 
 hf = figure;
@@ -220,13 +222,13 @@ Y_dfsm = Y_cell{2};
 
 plot(t,Y_dfsm(:,2),'linewidth',linewidth,'color',red)
 plot(t,Y_act(:,2),'linewidth',linewidth,'color',blue)
-plot(t,Y_dfsm(:,2)-Y_act(:,2),'linewidth',linewidth,'color','k')
+plot(t,Y_dfsm(:,2)-Y_act(:,2),'linewidth',linewidth/2,'color',grey)
 
-xlabel('Time [s]');ylabel('TwrBsMxt [kNm]');
+xlabel('Time [s]');ylabel('TwrBsMyt [kNm]');
 taskflag = 'axes'; commonFigureTasks;
 
 if saveflag
-    savename = ['TwrBsMxt',num2str(i)];
+    savename = ['TwrBsMxt_',num2str(i)];
     pathpdf = mfoldername(mfilename('fullpath'),fol_name);
     filename = fullfile(pathpdf,savename);
     str = strcat("export_fig '",filename,"' -pdf");
@@ -250,63 +252,64 @@ P1_dfsm(2:end-1) = 2*P1_dfsm(2:end-1);
 
 f = Fs*(0:(nt)/2);
 
-hf = figure;
-hf.Color = 'w';
-hold on;
-hf.Position = [131 49 570 413];
-commonFigureProperties
-
-plot(f,P1_dfsm,'linewidth',linewidth,'color',red)
-plot(f,P1_act,'linewidth',linewidth,'color',blue)
-
-taskflag = 'axes'; commonFigureTasks;
-ha.XScale = 'log';
-ha.YScale = 'log';
-
+% hf = figure;
+% hf.Color = 'w';
+% hold on;
+% hf.Position = [131 49 570 413];
+% commonFigureProperties
+% 
+% plot(f,P1_dfsm,'linewidth',linewidth,'color',red)
+% plot(f,P1_act,'linewidth',linewidth,'color',blue)
+% 
+% taskflag = 'axes'; commonFigureTasks;
+% ha.XScale = 'log';
+% ha.YScale = 'log';
+% xlim([0,10^3])
+% 
 
 
 end
 
 %%
-for i = 1
-
-
-hf = figure;
-hf.Color = 'w';
-hold on;
-hf.Position = [114 49 570 413];
-commonFigureProperties
-
-results_cell_ = results_cell{i};
-
-
-t = results_cell_{1};
-Y_cell = results_cell_{5};
-
-Y_act = Y_cell{1};
-Y_dfsm = Y_cell{2};
-
-
-plot(t,Y_dfsm(:,3),'linewidth',linewidth,'color',red)
-plot(t,Y_act(:,3),'linewidth',linewidth,'color',blue)
-plot(t,Y_dfsm(:,3)-Y_act(:,3),'linewidth',linewidth,'color','k')
-
-xlabel('Time [s]');ylabel('RtAeroCt [-]');
-taskflag = 'axes'; commonFigureTasks;
-
-if saveflag
-    savename = ['rt_aero_ct_',num2str(i)];
-    pathpdf = mfoldername(mfilename('fullpath'),fol_name);
-    filename = fullfile(pathpdf,savename);
-    str = strcat("export_fig '",filename,"' -pdf");
-    eval(str)
-end
-
-
-
-
-
-end
+% for i = 1:3
+% 
+% 
+% hf = figure;
+% hf.Color = 'w';
+% hold on;
+% hf.Position = [114 49 570 413];
+% commonFigureProperties
+% 
+% results_cell_ = results_cell{i};
+% 
+% 
+% t = results_cell_{1};
+% Y_cell = results_cell_{5};
+% 
+% Y_act = Y_cell{1};
+% Y_dfsm = Y_cell{2};
+% 
+% 
+% plot(t,Y_dfsm(:,2),'linewidth',linewidth,'color',red)
+% plot(t,Y_act(:,2),'linewidth',linewidth,'color',blue)
+% plot(t,Y_dfsm(:,2)-Y_act(:,2),'linewidth',linewidth/2,'color',grey)
+% 
+% xlabel('Time [s]');ylabel('TwrBsMyt [kNm]');
+% taskflag = 'axes'; commonFigureTasks;
+% 
+% if saveflag
+%     savename = ['twrbsmyt',num2str(i)];
+%     pathpdf = mfoldername(mfilename('fullpath'),fol_name);
+%     filename = fullfile(pathpdf,savename);
+%     str = strcat("export_fig '",filename,"' -pdf");
+%     eval(str)
+% end
+% 
+% 
+% 
+% 
+% 
+% end
 
 %------------------------------------------------------------------
 hf2 = copyfig(hf);
