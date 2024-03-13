@@ -131,6 +131,73 @@ function dfsm =  DFSM(sim_details,dfsm_options)
             case 'LTI'
             
                 AB = linsolve(inputs,state_dx);
+
+                % check if the linear model is stable
+                AB_ = AB';
+                
+                % number of controls
+                ncontrols = sim_details(1).ncontrols;
+                nstates = sim_details(1).nstates;
+
+                % extract the state matrix
+                A = AB_(:,ncontrols+1:end);
+                
+                % check if the real part of eigen values are negative
+                eigA = eig(A);
+                stability_test = (all(real(eigA)<0));
+                
+                %grey_box_flag = true;
+                % if the model is stable do nothing, else 
+                if stability_test
+                    % if the model is stable, do nothing
+                     % construct the linear model using grey-box estimation
+                    disp('')
+                    disp('')
+                    disp('The linear model identified using least-squares estimation is stable')
+                    disp('')
+                else 
+                    % construct the linear model using grey-box estimation
+                    disp('')
+                    disp('')
+                    disp('The linear model identified using least-squares estimation is unstable, using grey-box estimation to identify a stable model')
+                    disp('')
+
+                    % number of parameters
+                    par0 = (AB_(nstates/2+1:end,:));
+                    nx = length(par0(:));
+
+                    options_hybrid = optimoptions('fmincon','Display','iter','Algorithm','interior-point','MaxIterations',1000,'MaxFunctionEvaluations',50000,'UseParallel',true);
+                    
+                    rng(34534)
+
+                    % 
+                    hybrid_flag = ~false;
+
+                    if hybrid_flag
+
+                        % ga options
+                        gaopt = optimoptions('ga','UseParallel',true,'Display','iter','MaxGenerations',nx*2,'HybridFcn',{@fmincon,options_hybrid});
+                        
+                        % run hybrid optimization scheme
+                        [x,fval,exitflag,output,population,scores] = ga(@(x) evaluate_loss(x,nstates,ncontrols,inputs,state_dx),nx,[],[],[],[],[],[],@(x)test_stability(x,nstates,ncontrols),[],gaopt) ; %@(x)findEIG(x,ns,nc)
+                    else
+
+                        options = optimoptions('fmincon','Display','iter','Algorithm','interior-point','MaxIterations',100,'MaxFunctionEvaluations',10000,'UseParallel',true,'StepTolerance',1e-9,"EnableFeasibilityMode",~true);
+                        
+                        problem = createOptimProblem('fmincon','objective',@(x) evaluate_loss(x,nstates,ncontrols,inputs,state_dx),'x0',par0,'nonlcon',@(x)test_stability(x,nstates,ncontrols),'options',options);
+
+                        ms = MultiStart;
+
+                        gs = GlobalSearch;
+
+                        [x,f] = run(ms,problem,10);
+                        %x = fmincon(@(x) evaluate_loss(x,nstates,ncontrols,inputs,state_dx),par0,[],[],[],[],[],[],@(x)test_stability(x,nstates,ncontrols),options);
+                    end
+                    % get the linear model
+                    [A,B,~,~] = LTI_function(x,[],nstates,ncontrols);
+
+                    AB = [B,A]';
+                end
                 
                 if ~isempty(outputs)
                     CD = linsolve(inputs,outputs);

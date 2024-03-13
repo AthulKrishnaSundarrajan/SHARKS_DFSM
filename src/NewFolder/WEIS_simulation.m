@@ -4,7 +4,7 @@ clc; clear; close all;
 
 root_path = fileparts(which('INSTALL_DFSM'));
 data_path = fullfile(root_path,'data');
-fol_name_cell = {'DFSM_belowrated_10','DFSM_transition_10','DFSM_rated_10'};
+fol_name_cell = {'DFSM_MHK_CT'};
 
 results_cell = cell(3,1);
 dfsm_cell = cell(2,1);
@@ -14,7 +14,7 @@ for ifol = 1:length(fol_name_cell)
     sim_path = fullfile(data_path,fol_name_cell{ifol});
     
     % file names
-    prefix = 'lin_';
+    prefix = 'RM1_';
     suffix = '.outb';
     
     % sim_files 
@@ -37,14 +37,14 @@ for ifol = 1:length(fol_name_cell)
     end
     
     % required states
-    reqd_states = {'PtfmPitch','GenSpeed'};
+    reqd_states = {'GenSpeed'};
     
     % filtering arguments for states
-    filter_args.filt_states = [true,true];
-    filter_args.filt_states_tf = [1,1]; % 2,2 works
+    filter_args.filt_states = [true];
+    filter_args.filt_states_tf = [3]; % 2,2 works
     
     % required controls
-    reqd_controls = {'RtVAvgxh','GenTq','BldPitch1'};
+    reqd_controls = {'Wind1VelX','GenTq','BldPitch1'};
     
     % filtering arguments for controls
     filter_args.filt_controls = [~true,false,false];
@@ -53,7 +53,7 @@ for ifol = 1:length(fol_name_cell)
     % filter flag
     filter_flag = true;
     
-    reqd_outputs =  {'TwrBsFxt','TwrBsMyt'};
+    reqd_outputs =  {};
     scale_outputs = true;
     filter_args.filt_outputs =[false,~true,false];
     filter_args.filt_outputs_tf = [0.5];
@@ -69,8 +69,8 @@ for ifol = 1:length(fol_name_cell)
     split = [0.8,0.2];
     
     % dfsm options
-    dfsm_options.ltype = 'LPV';
-    dfsm_options.ntype = 'RBF';
+    dfsm_options.ltype = 'LTI';
+    dfsm_options.ntype = 'GPR';
     dfsm_options.lsamples = nan;
     dfsm_options.nsamples = 200;
     dfsm_options.sampling_type = 'KM';
@@ -81,14 +81,14 @@ for ifol = 1:length(fol_name_cell)
     dfsm_mf = DFSM(sim_details,dfsm_options);
     
 
-    ind_test = 9;
+    ind_test = 5;
 
     time = sim_details(ind_test).time;
     controls = sim_details(ind_test).controls;
     plot_flag = true;
     sim_flag = ~false;
     
-    [dfsm_mf,X_cell,dx_cell,Y_cell] = test_dfsm(dfsm_mf,sim_details(ind_test),1,plot_flag,sim_flag);
+    [dfsm_mf,X_cell,dx_cell,Y_cell] = test_dfsm(dfsm_mf,sim_details(ind_test),ind_test,plot_flag,sim_flag);
 
     results_cell{ifol} = {time,controls,X_cell,dx_cell,Y_cell};
 

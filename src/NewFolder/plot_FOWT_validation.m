@@ -1,7 +1,7 @@
 clc;clear; close all;
 
 % load result
-load('DFSM_FOWT_validation_Final.mat')
+load('DFSM_MHK_validation_Final.mat')
 
 C = materialColors;
 
@@ -16,14 +16,14 @@ color_map{2} = red;
 color_map{3} = yellow;
 
 
-fol_name = 'plot_oloc_results/validation/Final';
+fol_name = 'plot_oloc_results_MHK/validation/Final';
 saveflag = ~false;
 
 %% plot wind speed
 
 
 
-for i = 1:3
+for i = 1:6
 hf = figure;
 hf.Color = 'w';
 hold on;

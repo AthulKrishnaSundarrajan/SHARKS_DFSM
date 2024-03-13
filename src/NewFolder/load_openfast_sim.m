@@ -35,14 +35,21 @@ function sim_detail = load_openfast_sim(sim_name,reqd_states,reqd_controls,reqd_
 
         time = time(t_ind);
 
+    elseif tmin > 0
+
+        t_ind = (time >= tmin);
+        time = time(t_ind);
+
     end
     
     % extract state index
+
+
     ptfm_surge = false(length(reqd_states),1);
     for i = 1:length(reqd_states)
         state_ind(i) = find(contains(ChanName,reqd_states{i}));
 
-        if strcmpi(reqd_states{i},'PtfmSurge')
+        if strcmpi(reqd_states{i},'GenSpeed')
             ptfm_surge(i) = true;
         end
     end
@@ -85,8 +92,8 @@ function sim_detail = load_openfast_sim(sim_name,reqd_states,reqd_controls,reqd_
     states = Channels(t_ind,state_ind);
     controls = Channels(t_ind,control_ind);
 
-    controls(:,gt_flag) = controls(:,gt_flag)/1000;
-    states(:,ptfm_surge) = states(:,ptfm_surge)/1;
+    controls(:,gt_flag) = controls(:,gt_flag)/1;
+    states(:,ptfm_surge) = states(:,ptfm_surge)/100;
 
     % add to struct
     sim_detail.time = time;

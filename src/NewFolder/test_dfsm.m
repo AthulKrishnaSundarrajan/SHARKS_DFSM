@@ -23,11 +23,15 @@ function [dfsm,X_cell,dx_cell,Y_cell] = test_dfsm(dfsm,sim_details,ind,plot_flag
         outputs = sim_details(itest).outputs;
         noutputs = sim_details(itest).noutputs;
 
+        bp_ramp = @(t) 3*exp(-t/10);
+       % controls(:,3) = controls(:,3) + bp_ramp(time);
+
+
         % construct interpolating function for inputs
         u_pp = spline(time,controls');
         u_fun = @(t) ppval(u_pp,t);
         
-        x0 = states(1,:)';
+        x0 = states(1,:)';% + rand;
 
         % define solution options
         options = odeset('RelTol',1e-5,'AbsTol',1e-5);
@@ -44,7 +48,7 @@ function [dfsm,X_cell,dx_cell,Y_cell] = test_dfsm(dfsm,sim_details,ind,plot_flag
         end
         
         % stack states and controls
-        inputs = [controls,states];
+        inputs = [controls,X];
         
         % evaluate dfsm
         tic
@@ -110,14 +114,17 @@ function [dfsm,X_cell,dx_cell,Y_cell] = test_dfsm(dfsm,sim_details,ind,plot_flag
             hold on;
             sgtitle('State')
             
-            for idx = 1:nx
-                subplot(nx,1,idx)
-                hold on;
-                plot(T,X(:,idx),"LineWidth",1)
-                plot(time,states(:,idx),"LineWidth",1)
-                xlabel('Time [s]')
-                ylabel(sim_details(itest).state_names{idx})
-                legend('DFSM','OG')
+
+            for idx = 1:nx/2
+                if ~strcmpi(sim_details(itest).state_names{idx}(1),'d')
+                    subplot(nx/2,1,idx)
+                    hold on;
+                    plot(T,X(:,idx),"LineWidth",1)
+                    plot(time,states(:,idx),"LineWidth",1)
+                    xlabel('Time [s]')
+                    ylabel(sim_details(itest).state_names{idx})
+                    legend('DFSM','OG')
+                end
             end
             
             %------------------------------------------------------------------

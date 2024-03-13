@@ -6,7 +6,7 @@ function dx = evaluate_dfsm(inputs,dfsm,fun_type)
     % extract dfsm options
     ltype = dfsm.ltype;
     ntype = dfsm.ntype;
-    error_ind = dfsm.deriv.error_ind;
+    
     scaler_input = dfsm.scaler_input;
 
 
@@ -18,12 +18,14 @@ function dx = evaluate_dfsm(inputs,dfsm,fun_type)
             lin = dfsm.deriv.AB;
             nonlin = dfsm.deriv.nonlin;
             noutputs = dfsm.nderiv;
+            error_ind = dfsm.deriv.error_ind;
 
         case 'output'
 
             lin = dfsm.op.CD;
             nonlin = dfsm.op.nonlin;
             noutputs = dfsm.noutputs;
+            error_ind = dfsm.op.error_ind;
 
     end
    

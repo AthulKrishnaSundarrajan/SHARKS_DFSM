@@ -2,18 +2,19 @@ clc;clear;close all;
 
 root_path = which('INSTALL_DFSM'); % obtain full function path
 data_path = fullfile(fileparts(root_path), 'data', filesep);
-fulldata_path = fullfile(data_path,'transition_case'); % new data
+fulldata_path = fullfile(data_path,'MHK_BR_10'); % new data
 
 %% Options for different simulation results
 % prefix and suffix of output files
-prefix = 'lin_'; % simulations without TTDspFA
-% prefix = 'lin_'; % simulations with TTDspFA
 
+prefix = 'RM1_'; % simulations without TTDspFA
 suffix = '.outb';
 
-%%
+%% Load OpenFAST simulations
 % get all the files in the directory
 Out_files = dir(fullfile(fulldata_path,[prefix,'*',suffix]));
+
+tmin = 100;
 
 % get length
 nLinCases = length(Out_files);
@@ -26,109 +27,60 @@ else
     numstring = '%02d';
 end
 
-% required outputs
-output_names = {'RtVAvgxh','GenTq','BldPitch1','PtfmPitch','GenSpeed'};
-% output_names = {'RtVAvgxh','GenTq','BldPitch1','PtfmPitch','GenSpeed','TTDspFA'};
-
-%req_states = {'PtfmPitch','GenSpeed'};
+% Required states
 req_states = {'PtfmPitch','GenSpeed'};
 
-req_controls = {'RtVAvgxh','GenTq','BldPitch1'};
-n_names = length(output_names);iTime = 1;
-sim_plot = 0;
+% required controls
+req_controls = {'Wind1VelX','GenTq','BldPitch1','Wave1Elev'};
 
-wind = cell(nLinCases,1);
 
-reduce_samples = ~true;
+% go through each case and load OpenFAST simulations
+% The variable channels stores the simulations results.
+% If there are 200 channels, and there are 2000 points in time, then the
+% size of channels is [2000,200].
+% The first column is always Time
 
-% go through each case
-for iCase = 1:nLinCases
+% index for time
+iTime = 1;
 
-    switch suffix
-        case '.outb'
-            [Channels, ChanName, ChanUnit, DescStr] = ReadFASTbinary(fullfile(fulldata_path,[prefix,num2str(iCase-1,numstring),suffix]));
-        case '.mat'
-            load([prefix,num2str(iCase-1,'%01d'),suffix]);
-    end
 
-    %go through each output name and plot trajectory
-    if sim_plot
-        figure(iCase)
-        for idx = 1:n_names
-            subplot(3,2,idx)
-            ind = contains(ChanName,output_names{idx});
-            %      find(ind)
-            plot(Channels(:,1),Channels(:,ind))
-            title([output_names{idx},'',ChanUnit{ind}])
-            xlim([Channels(1,1),Channels(end,1)])
-        end
-    end
+for iCase = 1
 
-    % fix to bug
+    % Read the binary file and load the simulation results
+    [Channels, ChanName, ChanUnit, DescStr] = ReadFASTbinary(fullfile(fulldata_path,[prefix,num2str(iCase-1,numstring),suffix]));
+      
+
+    % Go thorugh the list of 'req_states' and extract the indices for the states
     for i = 1:length(req_states)
         iStates(i) = find(contains(ChanName,req_states{i}));
     end
 
-    % fix to bug
+    % Go thorugh the list of 'req_controls' and extract the indices for the controls
     for i = 1:length(req_controls)
         iInputs(i) = find(contains(ChanName,req_controls{i}));
     end
 
     % extract
-    t = Channels(:,iTime);
-    x = Channels(:,iStates); %x(:,1) = deg2rad(x(:,1));
-    u = Channels(:,iInputs);
+    time = Channels(:,iTime);
+    t_ind = time > tmin; % ignore the first tmin seconds of the simulation
+    time = time(t_ind);
 
-    if reduce_samples
-
-        nt = 10000;
-        t_ = linspace(t(1),t(end),nt);
-        x = interp1(t,x,t_,'pchip');
-        u = interp1(t,u,t_,'pchip');
-        t = t_;
-
-    end
-
-    % assign
-    data(iCase).time = t -min(t);
-    data(iCase).states = x;
-    data(iCase).inputs = u;
-    data(iCase).state_names = ChanName(iStates);
-    data(iCase).input_names = ChanName(iInputs);
-
-    wind{iCase} = u(:,1);
+    % extract states and controls
+    states = Channels(t_ind,iStates);
+    controls = Channels(t_ind,iInputs);
 
    
 end
 
-
-
-% specify which states derivative is included
-dindex = 1:length(req_states);
-
-% approximate state derivatives
-data = approximateStateDerivatives(data,dindex,1,3);
-
 % names
 state_names = req_states;
-for k = 1:length(dindex)
-    state_names{end+1} = ['d',req_states{dindex(k)}];
-end
 
-states = data(1).states;
-controls = data(1).inputs;
-%controls(end,:) = []; states(end,:) = [];
-
-Input = [controls states]';
-state_derivatives = data(1).state_derivatives;
-Output = state_derivatives';
-
- time = data(1).time;
-% time = time - min(time);
-%time(end) = [];
+% Input and Output for the neural network model
+Input = controls';
+Output = states';
 
 
-% plot
+% plot the inputs and outputs
 hf = figure;
 hf.Color = 'w';
 
@@ -153,96 +105,41 @@ plot(time,states(:,2))
 title('GenSpeed')
 
 
+%% Preprocssing data
 % split data into training and testing
 
 nt = length(time);
 
-if length(data) >1
-    
-    nsplit = 100;
 
-    indTrain = 1:nt; ntrail = length(indTrain);
-    
-    time_train = time;
+nsplit = 50; %<--------------------------- Tunable.
+% This parameter corresponds to the percentage of data we use for traning
+% and testing
 
-    XTrainA = Input;
-    TTrainA = Output;
+%We split the nt number of data into traning and testing
 
-    states2 = data(2).states;
-    controls2 = data(2).inputs;
-    
-    XTestA = [controls2 states2]';
-    state_derivatives2 = data(2).state_derivatives;
-    TTestA = state_derivatives2';
-    
-    time_test = data(2).time;
-    time_test = time_test - min(time);
-    ntest = length(time_test);
+% index for training data
+indTrain = 1: floor(nsplit/100*nt);
+ntrain = length(indTrain);
 
+% index for testing data
+indTest = indTrain(end)+1:nt;
+ntest = length(indTest);
 
-else
-    nsplit = 50; %<---------------------------
+% extract the testing and training data
+XTrainA = Input(:,indTrain);
+TTrainA = Output(:,indTrain);
 
-    indTrain = 1: floor(nsplit/100*nt);ntrain = length(indTrain);
-    indTest = indTrain(end)+1:nt; ntest = length(indTest);
-    
-    XTrainA = Input(:,indTrain);
-    TTrainA = Output(:,indTrain);
-    
-    XTestA = Input(:,indTest);
-    TTestA = Output(:,indTest);
-    
-    time_train = time(indTrain); 
-    time_test = time(indTest);
-end
-%------------------
+XTestA = Input(:,indTest);
+TTestA = Output(:,indTest);
 
-hf = figure;
-hf.Color = 'w';
+time_train = time(indTrain); 
+time_test = time(indTest);
 
-ind = 1;
-
-subplot(2,2,ind)
-hold on;
-plot(time_test,TTestA(ind,:),'k')
-%plot(time_test,dx_lstm(ind,:),'r--')
-xlabel('Time'); ylabel('dx_1')
-%legend('original','DFSM LSTM')
-
-
-ind = ind + 1;
-
-subplot(2,2,ind)
-hold on;
-plot(time_test,TTestA(ind,:),'k')
-%plot(time_test,dx_lstm(ind,:),'r--')
-xlabel('Time'); ylabel('dx_2')
-%legend('original','DFSM LSTM')
-
-
-ind = ind + 1;
-
-subplot(2,2,ind)
-hold on;
-plot(time_test,TTestA(ind,:),'k')
-%plot(time_test,dx_lstm(ind,:),'r--')
-xlabel('Time'); ylabel('dx_3')
-%legend('original','DFSM LSTM')
-
-
-ind = ind + 1;
-
-subplot(2,2,ind)
-hold on;
-plot(time_test,TTestA(ind,:),'k')
-%plot(time_test,dx_lstm(ind,:),'r--')
-xlabel('Time'); ylabel('dx_4')
-%legend('original','DFSM LSTM')
-
-%-------------------------------------
-
-n_channels = size(Input,1);
+n_inputs = size(Input,1);
 n_outputs = size(Output,1);
+
+% calculate the mean and standard deviation, and
+% normalize the data
 
 muX = mean(XTrainA,2);
 sigmaX = std(XTrainA,0,2);
@@ -250,14 +147,18 @@ sigmaX = std(XTrainA,0,2);
 muT = mean(TTrainA,2);
 sigmaT = std(TTrainA,0,2);
 
+% Reshape training data into 100 differet cells
 % reshape into cell array
 ncells = 100;
+
+% get index
 indTrain_ = reshape(indTrain,[],ncells);
 
-
+% initialize
 XTrain = cell(1,ncells);
 TTrain = cell(1,ncells);
 
+% Reshape and normalize
 for i = 1:ncells
     ind_ = indTrain_(:,i);
 
@@ -266,15 +167,17 @@ for i = 1:ncells
 
 end
 
+%% Train LSTM
 
 % define architecture
 layers = [
-    sequenceInputLayer(n_channels)
+    sequenceInputLayer(n_inputs)
     lstmLayer(128)
     fullyConnectedLayer(n_outputs)
     regressionLayer];
 
 % training options
+max_epoch = 200; %--------------------------- Tunable
 options = trainingOptions("adam", ...
     MaxEpochs=200, ...
     SequencePaddingDirection="left", ...
@@ -282,7 +185,7 @@ options = trainingOptions("adam", ...
     Plots="training-progress", ...
     Verbose=1);
 
-% train
+% train the LSTM network
 
 tic;
 net = trainNetwork(XTrain,TTrain,layers,options);
@@ -292,11 +195,10 @@ t_train = toc;
 XTest = (XTestA - muX)./sigmaX;
 TTest = (TTestA - muT)./sigmaT;
 
-% test
+%% Test LSTM
 
-
-
-dx_lstm = zeros(n_outputs,ntest);
+% initalize storage array
+states_lstm = zeros(n_outputs,ntest);
 
 % predict using the trained net
 tic;
@@ -306,96 +208,41 @@ for i = 1:ntest
     input_ = XTest(:,i);
 
     % predict
-    [net,dx_lstm(:,i)] = predictAndUpdateState(net,input_);
+    [net,states_lstm(:,i)] = predictAndUpdateState(net,input_);
 
 
 end
 t_predict = toc;
 
+% renormalize
+states_lstm = states_lstm.*sigmaT;
+states_lstm = states_lstm + muT;
+
+states_act = TTest.*sigmaT;
+states_act = states_act + muT;
+
+
+% plot results from LSTM
 hf = figure;
 hf.Color = 'w';
 
 ind = 1;
 
-subplot(2,2,ind)
+subplot(2,1,ind)
 hold on;
-plot(time_test,TTest(ind,:),'k')
-plot(time_test,dx_lstm(ind,:),'r--')
-xlabel('Time'); ylabel('dx_1')
-legend('original','DFSM LSTM')
+plot(time_test,states_act(ind,:),'k')
+plot(time_test,states_lstm(ind,:),'r')
+xlabel('Time'); ylabel('PtfmPitch')
+legend('original','LSTM')
 
 
 ind = ind + 1;
 
-subplot(2,2,ind)
+subplot(2,1,ind)
 hold on;
-plot(time_test,TTest(ind,:),'k')
-plot(time_test,dx_lstm(ind,:),'r--')
-xlabel('Time'); ylabel('dx_2')
-legend('original','DFSM LSTM')
-
-
-ind = ind + 1;
-
-subplot(2,2,ind)
-hold on;
-plot(time_test,TTest(ind,:),'k')
-plot(time_test,dx_lstm(ind,:),'r--')
-xlabel('Time'); ylabel('dx_3')
-legend('original','DFSM LSTM')
-
-
-ind = ind + 1;
-
-subplot(2,2,ind)
-hold on;
-plot(time_test,TTest(ind,:),'k')
-plot(time_test,dx_lstm(ind,:),'r--')
-xlabel('Time'); ylabel('dx_4')
-legend('original','DFSM LSTM')
-
-%% run simulations
-
-dx_lstm = dx_lstm.*sigmaT;
-dx_lstm = dx_lstm + muT;
-
-% state derivativs for validation
-dx_test = state_derivatives(indTest,:);
-
-
-dx_fun = @(t) interp1(time_test,dx_test,t,'pchip');
-dx_dfsm = @(t) interp1(time_test,dx_lstm',t,'pchip');
-
-state_test = states(indTest,:);
-X0 = state_test(1,:)';
-
-tspan = [time_test(1),time_test(end)];
-OPTIONS = odeset('reltol',1e-8);
-
-[T_OF,X_OF] = ode45(@(t,x)dx_function(t,x,dx_fun),tspan,X0,OPTIONS);
-[T_dfsm,X_dfsm] = ode45(@(t,x)dx_function(t,x,dx_dfsm),T_OF,X0,OPTIONS);
-
-%% save results
-
-if reduce_samples
-    suffix = 'red.mat';
-else
-    suffix = '.mat';
-end
-
-matname = fullfile(data_path,['lstm_weis_results_',num2str(nsplit),suffix]);
-
-save(matname,'time_test','dx_lstm','TTest','XTest','time_train','XTrain','TTrain','muX','muT','sigmaX',...
-    'sigmaT','time','states','controls','state_derivatives','t_train','t_predict',"nsplit",'T_OF','X_OF','T_dfsm','X_dfsm');
-
+plot(time_test,states_act(ind,:),'k')
+plot(time_test,states_lstm(ind,:),'r')
+xlabel('Time'); ylabel('GenSpeed')
+legend('original','LSTM')
 
 return
-
-
-function dx = dx_function(t,x,dx_fun)
-
-    dx = dx_fun(t);
-    dx = dx';
-
-end
-

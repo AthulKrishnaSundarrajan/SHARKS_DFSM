@@ -15,7 +15,13 @@ function sim_details = approx_derivatives(sim_details,add_dx2)
     
     % evaluate state derivative
     state_derivatives = ppval(dx_pp,time);
+
     state_derivatives2 = ppval(dx2_pp,time);
+
+    if size(states,2) == 1
+        state_derivatives = state_derivatives';
+        state_derivatives2 = state_derivatives2';
+    end
     
     % assign
     if add_dx2
