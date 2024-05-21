@@ -1,11 +1,11 @@
 clc;clear; close all;
 
 % load result
-load('DFSM_MHK_validation_Final.mat')
+load('WEIS-P2-Q2.mat')
 
 C = materialColors;
 
-blue = C.blue(9,:);
+blue = 'k';%C.blue(9,:);
 yellow = C.yellow(10,:);
 red = C.red(7,:);
 grey = C.grey(7,:);
@@ -16,21 +16,21 @@ color_map{2} = red;
 color_map{3} = yellow;
 
 
-fol_name = 'plot_oloc_results_MHK/validation/Final';
+fol_name = 'plot_WEIS-P2-Q2';
 saveflag = ~false;
 
 %% plot wind speed
 
+nr = 1;
 
-
-for i = 1:6
+for i = 1:nr
 hf = figure;
 hf.Color = 'w';
 hold on;
 hf.Position = [131 49 570 413];
 commonFigureProperties
 
-results_cell_ = results_cell{i};
+results_cell_ = results_cell;
 
 
 t = results_cell_{1};
@@ -56,7 +56,7 @@ end
 %% plot platform pitch
 
 
-for i = 1:3
+for i = 1:nr
 
     hf = figure;
     hf.Color = 'w';
@@ -64,7 +64,7 @@ for i = 1:3
     hf.Position = [314 69 570 413];
     commonFigureProperties
     
-    results_cell_ = results_cell{i};
+    results_cell_ = results_cell;
     
     t = results_cell_{1};
     X_cell = results_cell_{3};
@@ -74,7 +74,7 @@ for i = 1:3
     
     plot(t,X_dfsm(:,1),'linewidth',linewidth,'color',red)
     plot(t,X_act(:,1),'linewidth',linewidth,'color',blue)
-    plot(t,X_dfsm(:,1)-X_act(:,1),'linewidth',linewidth/2,'color',grey)
+    %plot(t,X_dfsm(:,1)-X_act(:,1),'linewidth',linewidth/2,'color',grey)
     
 
     xlabel('Time [s]');ylabel('Platform Pitch [deg]');
@@ -95,7 +95,7 @@ end
 %% plot gen speed
 
 
-for i = 1:3
+for i = 1:nr
 
 
 hf = figure;
@@ -104,7 +104,7 @@ hold on;
 hf.Position = [114 46 570 413];
 commonFigureProperties
 
-results_cell_ = results_cell{i};
+results_cell_ = results_cell;
 
 
 t = results_cell_{1};
@@ -114,9 +114,9 @@ X_act = X_cell{1};
 X_dfsm = X_cell{2};
 
 
-    plot(t,X_dfsm(:,2),'linewidth',linewidth,'color',red)
-    plot(t,X_act(:,2),'linewidth',linewidth,'color',blue)
-    plot(t,X_dfsm(:,2)-X_act(:,2),'linewidth',linewidth/2,'color',grey)
+    plot(t,X_dfsm(:,2)+0,'linewidth',linewidth,'color',red)
+    plot(t,X_act(:,2)+0,'linewidth',linewidth,'color',blue)
+    %plot(t,X_dfsm(:,2)-X_act(:,2),'linewidth',linewidth/2,'color',grey)
 
 xlabel('Time [s]');ylabel('Generator Speed [rad/s]');
 taskflag = 'axes'; commonFigureTasks;
@@ -133,7 +133,7 @@ end
 end
 
 %%
-for i = 1:3
+for i = 1:nr
 
 
 hf = figure;
@@ -142,7 +142,7 @@ hold on;
 hf.Position = [114 69 570 413];
 commonFigureProperties
 
-results_cell_ = results_cell{i};
+results_cell_ = results_cell;
 
 t = results_cell_{1};
 Y_cell = results_cell_{5};
@@ -153,13 +153,13 @@ Y_dfsm = Y_cell{2};
 
     plot(t,Y_dfsm(:,1),'linewidth',linewidth,'color',red)
     plot(t,Y_act(:,1),'linewidth',linewidth,'color',blue)
-    plot(t,Y_dfsm(:,1)-Y_act(:,1),'linewidth',linewidth/2,'color',grey)
+    %plot(t,Y_dfsm(:,1)-Y_act(:,1),'linewidth',linewidth/2,'color',grey)
 
-xlabel('Time [s]');ylabel('TwrBsFxt [kN]');
+xlabel('Time [s]');ylabel('TwrBsMyt [kNm]');
 taskflag = 'axes'; commonFigureTasks;
 
 if saveflag
-    savename = ['TwrBsFxt_',num2str(i)];
+    savename = ['TwrBsMyt_',num2str(i)];
     pathpdf = mfoldername(mfilename('fullpath'),fol_name);
     filename = fullfile(pathpdf,savename);
     str = strcat("export_fig '",filename,"' -pdf");
@@ -196,13 +196,13 @@ f = Fs*(0:(nt)/2);
 % taskflag = 'axes'; commonFigureTasks;
 % ha.XScale = 'log';
 % ha.YScale = 'log';
-% xlim([0,10^3])
-% 
+%xlim([0,10^3])
+
 % %xlim([0,5])
 
 end
 %%
-for i = 1:3
+for i = 1:nr
 
 
 hf = figure;
@@ -211,7 +211,7 @@ hold on;
 hf.Position = [131 49 570 413];
 commonFigureProperties
 
-results_cell_ = results_cell{i};
+results_cell_ = results_cell;
 
 t = results_cell_{1};
 Y_cell = results_cell_{5};
@@ -220,15 +220,15 @@ Y_act = Y_cell{1};
 Y_dfsm = Y_cell{2};
 
 
-plot(t,Y_dfsm(:,2),'linewidth',linewidth,'color',red)
-plot(t,Y_act(:,2),'linewidth',linewidth,'color',blue)
-plot(t,Y_dfsm(:,2)-Y_act(:,2),'linewidth',linewidth/2,'color',grey)
+plot(t,Y_dfsm(:,2)+0,'linewidth',linewidth,'color',red)
+plot(t,Y_act(:,2)+0,'linewidth',linewidth,'color',blue)
+%plot(t,Y_dfsm(:,2)-Y_act(:,2),'linewidth',linewidth/2,'color',grey)
 
-xlabel('Time [s]');ylabel('TwrBsMyt [kNm]');
+xlabel('Time [s]');ylabel('NcIMURAys [rad/s2]');
 taskflag = 'axes'; commonFigureTasks;
 
 if saveflag
-    savename = ['TwrBsMxt_',num2str(i)];
+    savename = ['NcIMURAys_',num2str(i)];
     pathpdf = mfoldername(mfilename('fullpath'),fol_name);
     filename = fullfile(pathpdf,savename);
     str = strcat("export_fig '",filename,"' -pdf");
@@ -264,7 +264,7 @@ f = Fs*(0:(nt)/2);
 % taskflag = 'axes'; commonFigureTasks;
 % ha.XScale = 'log';
 % ha.YScale = 'log';
-% xlim([0,10^3])
+% %xlim([0,10^3])
 % 
 
 

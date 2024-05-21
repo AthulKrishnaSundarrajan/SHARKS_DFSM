@@ -9,7 +9,7 @@ for i = 1:nsim
     % initialize
     sim_details(i).time = [];sim_details(i).states = [];sim_details(i).controls = [];sim_details(i).state_derivatives = [];sim_details(i).outputs = [];
 
-    sim_details(i).state_names = [];sim_details(i).control_names = [];sim_details(i).output_names = [];
+    sim_details(i).state_names = [];sim_details(i).control_names = [];sim_details(i).output_names = [];sim_details(i).w_mean = [];
 
     sim_details(i).nstates = [];sim_details(i).ncontrols = [];sim_details(i).ninputs = [];sim_details(i).noutputs = [];sim_details(i).nderiv = [];
     sim_details(i).dx_act = [];sim_details(i).fun_name = [];

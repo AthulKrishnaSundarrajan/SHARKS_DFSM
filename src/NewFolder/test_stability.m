@@ -7,7 +7,7 @@ function [c,ceq] =  test_stability(x,ns,nc)
     eigA = eig(A);
     
     % real values
-    c = real(eigA);
+    c = real(eigA)+0.1;
     
     % no equality constraints
     ceq = [];

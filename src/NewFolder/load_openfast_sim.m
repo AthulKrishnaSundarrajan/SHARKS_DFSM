@@ -99,6 +99,7 @@ function sim_detail = load_openfast_sim(sim_name,reqd_states,reqd_controls,reqd_
     sim_detail.time = time;
     sim_detail.states = states;
     sim_detail.controls = controls;
+    sim_detail.w_mean = round(mean(Channels(:,2)));
     sim_detail.state_names = reqd_states;
     sim_detail.control_names = reqd_controls;
     sim_detail.outputs = outputs;

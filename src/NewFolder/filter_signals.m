@@ -69,6 +69,10 @@ end
 
 function signal = perform_filter(signal,time,t_f)
 
+    if t_f == 0
+    
+    else
+
     dt = time(2) - time(1);
 
     %
@@ -77,8 +81,9 @@ function signal = perform_filter(signal,time,t_f)
     %
     b = ones(nb,1)/nb;
     
+    
     %
     signal = filtfilt(b,1,signal);
-
+    end
 
 end

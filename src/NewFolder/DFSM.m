@@ -176,7 +176,7 @@ function dfsm =  DFSM(sim_details,dfsm_options)
                     if hybrid_flag
 
                         % ga options
-                        gaopt = optimoptions('ga','UseParallel',true,'Display','iter','MaxGenerations',nx*2,'HybridFcn',{@fmincon,options_hybrid});
+                        gaopt = optimoptions('ga','UseParallel',true,'Display','iter','MaxGenerations',nx*2);%,'HybridFcn',{@fmincon,options_hybrid});
                         
                         % run hybrid optimization scheme
                         [x,fval,exitflag,output,population,scores] = ga(@(x) evaluate_loss(x,nstates,ncontrols,inputs,state_dx),nx,[],[],[],[],[],[],@(x)test_stability(x,nstates,ncontrols),[],gaopt) ; %@(x)findEIG(x,ns,nc)
@@ -226,7 +226,7 @@ function dfsm =  DFSM(sim_details,dfsm_options)
                 wmax = max(wind)-1;
                 
                 % construct the LPV model
-                AB = construct_LPV(inputs,state_dx,wind,wmin,wmax);
+                [AB,AB_interp,W] = construct_LPV(inputs,state_dx,wind,wmin,wmax);
                 
                 % evaluate the error between original model and DFSM model
                 dx_error = dx_sampled - evaluate_LPV(AB,wmax,wmin,input_sampled,nderiv);
@@ -243,6 +243,8 @@ function dfsm =  DFSM(sim_details,dfsm_options)
                 
                 % store values
                 dfsm.deriv.AB = AB;
+                dfsm.deriv.AB_interp = AB_interp;
+                dfsm.deriv.W = W;
                 op.CD = CD;
                 dfsm.lpv.wmin = wmin;
                 dfsm.lpv.wmax = wmax;
@@ -383,7 +385,7 @@ end
 end
 
 
-function lin = construct_LPV(inputs,outputs,wind,wmin,wmax)
+function [lin,AB_interp,W] = construct_LPV(inputs,outputs,wind,wmin,wmax)
 
     % function to construct LPV model
 
@@ -396,7 +398,8 @@ function lin = construct_LPV(inputs,outputs,wind,wmin,wmax)
     noutputs = size(outputs,2);
     
     % create a grid of wind speed values
-    W = linspace(wmin,wmax,50);
+    nW = 20;
+    W = linspace(wmin,wmax,nW);
     
     % initialize offset
     offset = 3;
@@ -404,7 +407,7 @@ function lin = construct_LPV(inputs,outputs,wind,wmin,wmax)
     % initialize storage array
     IW_ = zeros(length(W),1);
 
-    AB_interp = zeros(50,ninputs,noutputs);
+    AB_interp = zeros(nW,ninputs,noutputs);
 
     for k = 1:length(W)
     
@@ -435,6 +438,7 @@ function lin = construct_LPV(inputs,outputs,wind,wmin,wmax)
         lin_pp = interp1(W,AB_interp(:,:,ix),'nearest','pp');
         lin{ix} = @(w) ppval(lin_pp,w);
     end
+
 
 
 end

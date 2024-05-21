@@ -12,7 +12,7 @@ A = [zeros(ns/2),eye(ns/2);A_par];
 
 
 B = [zeros(ns/2,nc);B_par];
-C = A_par; 
-D = B_par; 
+C = A; 
+D = B; 
 
 end
